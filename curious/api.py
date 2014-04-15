@@ -1,6 +1,7 @@
 import json
 import types
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
+from django.db.models.fields.related import ForeignKey
 from django.http import HttpResponse
 from django.views.generic.base import View
 
@@ -48,16 +49,13 @@ class ObjectView(JSONView):
 
   @staticmethod
   def object_to_dict(obj):
-    d = {k: v for k, v in obj.__dict__.iteritems()
-         if type(v) in (long, int, float, str, unicode, bool, types.NoneType)}
-
-    # find foreign keys
-    for f in dir(obj):
-      k = '%s_id' % f
-      if k in d and type(getattr(obj.__class__, f)) == ReverseSingleRelatedObjectDescriptor:
+    d = {}
+    for f in obj._meta.fields:
+      d[f.column] = str(getattr(obj, f.column))
+      if f == ForeignKey:
         v = getattr(obj, f)
         if v is not None:
-          d[k] = {'model': v.__class__.__name__, 'id': v.pk, '__str__': str(v)}
+          d[f.column] = {'model': v.__class__.__name__, 'id': v.pk, '__str__': str(v)}
     return d
 
   def get(self, request, model_name, id):
