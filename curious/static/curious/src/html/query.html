@@ -37,7 +37,7 @@
 <div ng-if="completed && success && last_model">
 
 <div id="results-header">
-  <span>{{ entries.length }} row(s) of <b>{{ last_model }}</b></span>
+  <span>{{ table.rows.length }} row(s) of <b>{{ last_model }}</b></span>
   <div id="recommended_rels" class="dropdown navbar-right">
     <a data-toggle="dropdown" href="javascript:void(0);">Relations from {{ last_model }}</a>
     <ul class="rel-list dropdown-menu" role="menu">
@@ -58,24 +58,23 @@
   </div> <!-- recommended_rels -->
 </div>
 
-<table class="table table-condensed table-striped table-bordered table-fixed" ng-if="tbl_attrs">
+<table class="table table-condensed table-striped table-bordered table-fixed" ng-if="table.attrs">
   <tr class="success">
-    <td class="wrap"
-        ng-repeat="q in tbl_queries track by $index" colspan="{{ q.cols }}">{{ q.query }}</td>
+    <td class="wrap" ng-repeat="q in table.queries track by $index" colspan="{{ q.cols }}">
+      <a href="javascript:void(0)" ng-click="table.toggle($index)" title="Click to show/hide attrs"
+       >{{ q.query }}</a>
+    </td>
   </tr>
+
   <tr class="success">
     <th class="wrap"
-        ng-repeat="attr in tbl_attrs track by $index">{{ attr }}</th>
+        ng-repeat="attr in table.attrs track by $index">{{ attr }}</th>
   </tr>
-  <tr ng-repeat="entry in entries track by $index">
+
+  <tr ng-repeat="row in table.rows track by $index">
     <td class="wrap"
-        ng-repeat="object in entry track by $index">
-      {{ object.ptr.id|showAttr }}
-    </td>
-    <!-- show details of obj from last query -->
-    <td class="wrap"
-        ng-repeat="attr in tbl_last_attrs track by $index">
-      {{ entry[entry.length-1].ptr[attr]|showAttr }}
+        ng-repeat="object in row track by $index" ng-init="attr = table.attrs[$index]">
+      {{ object.ptr[attr]|showAttr }}
     </td>
   </tr>
 </table>

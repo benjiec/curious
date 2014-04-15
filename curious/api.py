@@ -51,7 +51,7 @@ class ObjectView(JSONView):
   def object_to_dict(obj):
     d = {}
     for f in obj._meta.fields:
-      d[f.column] = str(getattr(obj, f.column))
+      d[f.column] = unicode(getattr(obj, f.column))
       if type(f) == ForeignKey:
         v = getattr(obj, f.name)
         if v is not None:

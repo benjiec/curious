@@ -1,20 +1,53 @@
+var app = angular.module('curious', ['ngRoute'])
+  .config(['$routeProvider', function($routeProvider) {
+    $routeProvider
+      .when('/', {template: JST['search'],
+                  controller: SearchController})
+      .when('/q/:query*', { template: JST['search'],
+                           controller: SearchController })
+      .otherwise({redirectTo: '/'});
+  }]);
+
+app.directive('partial', function($compile) {
+  var linker = function(scope, element, attrs) {
+    element.html(JST[attrs.template]());
+    $compile(element.contents())(scope);
+  };
+  return {
+    link: linker,
+    restrict: 'E'
+  }
+});
+
+app.filter('encodeURIComponent', function() { return window.encodeURIComponent; });
+app.filter('encodeURI', function() { return window.encodeURI; });
+
+app.filter('showAttr', function() {
+  return function(obj) {
+    if (obj && obj.hasOwnProperty('display')) { return obj.display; }
+    else { return obj; }
+  }
+});
+
+app.factory('RecentQueries', function() {
+  return [];
+});
+
 'use strict';
 
 function QueryController($scope, $http, $location) {
-  function init_results() {
+
+  function init_query() {
     $scope.search_result = undefined;
     $scope.search_error = undefined;
     $scope.completed = false;
     $scope.success = false;
     $scope.last_model = undefined;
     $scope.last_model_rels = [];
-    $scope.entries = [];
-    $scope.objects = [];
-    $scope.tbl_queries = [];
-    $scope.tbl_attrs = [];
-    $scope.tbl_last_attrs = [];
+    $scope.table = undefined;
   }
-  init_results();
+
+  init_query();
 
   $scope.q_j = { main_query: $scope.query.query,
                  prev_joins: [],
@@ -38,32 +71,6 @@ function QueryController($scope, $http, $location) {
       else { cb(undefined, "Unspecified error from server"); }
     });
   }
-
-  // cb only called if we had to fetch new data
-  //
-  function get_object(model, id, cb) {
-    var obj_id = model+'.'+id;
-    if (obj_id in $scope.objects && $scope.objects[obj_id]['__fetched__']) { return; }
-
-    var url = $scope.__base_url+'/objects/'+model+'/'+id+'/';
-    $http.get(url).success(function(data) {
-      var result = data.result;
-      var ptr = $scope.objects[obj_id];
-      ptr['id'] = id;
-      ptr['__fetched__'] = true;
-      for (var a in result) {
-        var v = result[a];
-        var s = v;
-        if (v && v.model && '__str__' in v) {
-          s = v['__str__'];
-          if (v.id) { s += ' ('+v.id+')'; }
-        }
-        ptr[a] = {value: v, display: s};
-      }
-      // console.log(ptr);
-      if (cb) { cb(result); }
-    });
-  };
 
   function make_query(query, cb) {
     var url = $scope.__base_url+'/q/';
@@ -176,28 +183,153 @@ function QueryController($scope, $http, $location) {
     }
   }
 
-  function set_join_table(join_queries, entries, last_query_obj) {
-    $scope.tbl_queries = [];
-    $scope.tbl_attrs = [];
-    $scope.tbl_last_attrs = [];
+  function create_join_table(join_queries, entries) {
+    var join_queries = join_queries;
+    var entries = entries;
+    var objects = [];
 
-    var attrs = [];
-    for (var a in last_query_obj) { if (a !== 'id') { attrs.push(a); } }
-    attrs.sort();
-    $scope.tbl_last_attrs = attrs.slice(0);
+    // these variables are created once for each table
+    var tbl_queries = [];
+    var tbl_models = [];
+
+    // these variables are updated dynamically as objects get fetched
+    var tbl_attrs = [];
+    var tbl_rows = [];
+
+    // sets public accessible attrs of the join table
+    //
+    function set_scope_table() {
+      $scope.table = {
+        toggle: toggle,
+        queries: tbl_queries,
+        attrs: tbl_attrs,
+        rows: tbl_rows
+      }
+    }
+
+    // create a dict of objects, add ptr to object from each cell in
+    // entries table
+    for (var i=0; i<entries.length; i++) {
+      for (var j=0; j<entries[i].length; j++) {
+        var entry = entries[i][j];
+        var obj_id = entry.model+'.'+entry.id;
+        if (objects[obj_id] === undefined) {
+          objects[obj_id] = { id: entry.id }
+        }
+        entry['ptr'] = objects[obj_id];
+      }
+    }
 
     for (var i=0; i<join_queries.length; i++) {
       var cols = 1;
-      if (i == join_queries.length-1) { cols = attrs.length+1 }
-      $scope.tbl_queries.push({query: join_queries[i], cols: cols});
+      tbl_queries.push({query: join_queries[i], cols: cols});
+    }
+    for (var j=0; j<entries[0].length; j++) {
+      tbl_models.push({model: entries[0][j].model, attrs: ['id'], loaded: false});
     }
 
-    for (var i=0; i<join_queries.length; i++) { attrs.unshift('id'); }
-    $scope.tbl_attrs = attrs;
+    function get_object(model, id, cb) {
+      var obj_id = model+'.'+id;
+      if (obj_id in objects && objects[obj_id]['__fetched__']) {
+        cb(objects[obj_id]['__fetched__']);
+        return;
+      }
+
+      var url = $scope.__base_url+'/objects/'+model+'/'+id+'/';
+      $http.get(url).success(function(data) {
+        var result = data.result;
+        var ptr = objects[obj_id];
+        ptr['id'] = id;
+        ptr['__fetched__'] = result;
+        for (var a in result) {
+          var v = result[a];
+          var s = v;
+          if (v && v.model && '__str__' in v) {
+            s = v['__str__'];
+            if (v.id) { s += ' ('+v.id+')'; }
+          }
+          ptr[a] = {value: v, display: s};
+        }
+        // console.log(ptr);
+        if (cb) { cb(result); }
+      });
+    }
+
+    function update_table() {
+      tbl_attrs = [];
+      var attr_model_idx = [];
+      for (var i=0; i<tbl_models.length; i++) {
+        for (var j=0; j<tbl_models[i].attrs.length; j++) {
+          tbl_attrs.push(tbl_models[i].attrs[j]);
+          attr_model_idx.push(i);
+        }
+      }
+      // console.log(tbl_attrs);
+
+      tbl_rows = [];
+      for (var i=0; i<entries.length; i++) {
+        var row = [];
+        for (var j=0; j<tbl_attrs.length; j++) {
+          var k = attr_model_idx[j];
+          row.push(entries[i][k]);
+        }
+        tbl_rows.push(row);
+      }
+      // console.log(tbl_rows);
+    }
+
+    function get_object_cb(column_idx, object) {
+      if (tbl_models[column_idx].attrs.length == 1) {
+        var attrs = [];
+        for (var a in object) { if (a !== 'id') { attrs.push(a); } }
+        attrs.sort();
+        attrs.unshift('id');
+        tbl_models[column_idx].attrs = attrs;
+        tbl_queries[column_idx].cols = attrs.length;
+        // console.log('set attrs for '+column_idx+': '+attrs);
+        update_table();
+        set_scope_table(); // update scope variables so angular can re-render
+      }
+    }
+
+    function fetch_column(column_idx) {
+      if (tbl_models[column_idx].loaded == true) {
+        obj = entries[0][column_idx];
+        get_object(obj.model, obj.id, function(obj_data) {
+          get_object_cb(column_idx, obj_data);
+        });
+        return;
+      }
+      for (var i=0; i<entries.length; i++) {
+        var obj = entries[i][column_idx];
+        // console.log('fetch '+obj.model+'.'+obj.id);
+        get_object(obj.model, obj.id, function(obj_data) {
+          get_object_cb(column_idx, obj_data);
+        });
+      }
+      tbl_models[column_idx].loaded = true;
+    }
+
+    function hide_column(column_idx) {
+      tbl_models[column_idx].attrs = ['id'];
+      tbl_queries[column_idx].cols = 1;
+      update_table();
+      set_scope_table(); // update scope variables so angular can re-render
+    }
+
+    function toggle(column_idx) {
+      if (tbl_models[column_idx].attrs.length == 1) { fetch_column(column_idx); }
+      else { hide_column(column_idx); }
+    }
+
+    update_table(); // initialize table
+    // by default, fetch objects from last query
+    fetch_column(entries[0].length-1);
+    set_scope_table();
   }
 
   function execute() {
-    init_results();
+    init_query();
 
     var queries = query_with_all_joins(true);
     var entries = [[]];
@@ -217,37 +349,7 @@ function QueryController($scope, $http, $location) {
               if (result.relationships) { $scope.last_model_rels = result.relationships; }
             }
           });
-          $scope.entries = entries;
-
-          // create a dict of objects, add ptr to object from each cell in
-          // entries table
-          var objects = [];
-          for (var i=0; i<entries.length; i++) {
-            for (var j=0; j<entries[i].length; j++) {
-              var entry = entries[i][j];
-              var obj_id = entry.model+'.'+entry.id;
-              if (objects[obj_id] === undefined) {
-                objects[obj_id] = { id: entry.id }
-              }
-              entry['ptr'] = objects[obj_id];
-            }
-          }
-          $scope.objects = objects;
-
-          // fetch objects from last query
-          var table_set = false;
-          var coli = entries[0].length-1;
-          for (var i=0; i<entries.length; i++) {
-            var last = entries[i][coli];
-            // console.log('fetch '+last.model+'.'+last.id);
-            get_object(last.model, last.id, function(obj_data) {
-              // on first object fetched, set the join table columns
-              if (table_set == false) {
-                table_set = true;
-                set_join_table(queries, entries, obj_data);
-              }
-            });
-          }
+          create_join_table(queries, entries);
         }
       }
     });
@@ -317,41 +419,6 @@ function QueryController($scope, $http, $location) {
 
   execute();
 };
-
-var app = angular.module('curious', ['ngRoute'])
-  .config(['$routeProvider', function($routeProvider) {
-    $routeProvider
-      .when('/', {template: JST['search'],
-                  controller: SearchController})
-      .when('/q/:query*', { template: JST['search'],
-                           controller: SearchController })
-      .otherwise({redirectTo: '/'});
-  }]);
-
-app.directive('partial', function($compile) {
-  var linker = function(scope, element, attrs) {
-    element.html(JST[attrs.template]());
-    $compile(element.contents())(scope);
-  };
-  return {
-    link: linker,
-    restrict: 'E'
-  }
-});
-
-app.filter('encodeURIComponent', function() { return window.encodeURIComponent; });
-app.filter('encodeURI', function() { return window.encodeURI; });
-
-app.filter('showAttr', function() {
-  return function(obj) {
-    if (obj && obj.hasOwnProperty('display')) { return obj.display; }
-    else { return obj; }
-  }
-});
-
-app.factory('RecentQueries', function() {
-  return [];
-});
 
 'use strict';
 
