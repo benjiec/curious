@@ -52,8 +52,8 @@ class ObjectView(JSONView):
     d = {}
     for f in obj._meta.fields:
       d[f.column] = str(getattr(obj, f.column))
-      if f == ForeignKey:
-        v = getattr(obj, f)
+      if type(f) == ForeignKey:
+        v = getattr(obj, f.name)
         if v is not None:
           d[f.column] = {'model': v.__class__.__name__, 'id': v.pk, '__str__': str(v)}
     return d
