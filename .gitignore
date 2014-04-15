@@ -1,0 +1,6 @@
+build
+dist
+curious.egg-info
+.webassets-cache
+*.pyc
+.*.swp

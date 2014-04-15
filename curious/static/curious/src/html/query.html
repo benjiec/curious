@@ -1,0 +1,82 @@
+<p ng-if="search_error">
+  Error: {{ search_error }}
+</p>
+
+<p ng-if="completed && success && !last_model">
+  <em>No matching data</em>
+</p>
+
+<div ng-if="completed && success && last_model">
+
+<!-- join queries -->
+<div class="well">
+  <div class="input-group" ng-repeat="join_query in q_j.prev_joins track by $index">
+    <span class="input-group-addon">Joined</span>
+    <input class="form-control" ng-model="join_query" disabled />
+  </div>
+  <div ng-if="q_j.last_join">
+    <form ng-submit="extendJoin()">
+      <div class="input-group">
+        <span class="input-group-addon">Join</span>
+        <input class="form-control" ng-model="q_j.last_join" />
+      </div>
+    </form>
+  </div>
+  <form ng-submit="newJoin()">
+    <div class="input-group">
+      <span class="input-group-addon">New Join</span>
+      <input class="form-control" ng-model="q_j.new_join" />
+    </div>
+  </form>
+</div>
+
+<p ng-if="query_error">
+  <span class="label label-danger">Query Syntax Error</span>
+  <code>{{ query_error }}</code>
+</p>
+
+<div id="results-header">
+  <span>{{ entries.length }} row(s) of <b>{{ last_model }}</b></span>
+  <div id="recommended_rels" class="dropdown navbar-right">
+    <a data-toggle="dropdown" href="javascript:void(0);">Relations from {{ last_model }}</a>
+    <ul class="rel-list dropdown-menu" role="menu">
+      <li ng-repeat="rel in last_model_rels">
+        <span class="rel-actions">
+          <a class="btn btn-xs btn-info" href='javascript:void(0);' title="Extend main query"
+             ng-click="addRelToQuery(q_j.main_query, last_model, rel)">Q</a>
+          <span ng-if="q_j.last_join">
+            <a class="btn btn-xs btn-info" href='javascript:void(0);' title="Extend last join"
+               ng-click="addRelToJoin(last_model, rel)">E</a>
+          </span>
+          <a class="btn btn-xs btn-info" href='javascript:void(0);' title="New join"
+             ng-click="addJoinToQuery(last_model, rel)">J</a>
+        </span>
+        <span class="rel-name">{{ rel }}</span>
+      </li>
+    </ul>
+  </div> <!-- recommended_rels -->
+</div>
+
+<table class="table table-condensed table-striped table-bordered table-fixed" ng-if="tbl_attrs">
+  <tr class="success">
+    <td class="wrap"
+        ng-repeat="q in tbl_queries track by $index" colspan="{{ q.cols }}">{{ q.query }}</td>
+  </tr>
+  <tr class="success">
+    <th class="wrap"
+        ng-repeat="attr in tbl_attrs track by $index">{{ attr }}</th>
+  </tr>
+  <tr ng-repeat="entry in entries track by $index">
+    <td class="wrap"
+        ng-repeat="object in entry track by $index">
+      {{ object.ptr.id|showAttr }}
+    </td>
+    <!-- show details of obj from last query -->
+    <td class="wrap"
+        ng-repeat="attr in tbl_last_attrs track by $index">
+      {{ entry[entry.length-1].ptr[attr]|showAttr }}
+    </td>
+  </tr>
+</table>
+
+</div> <!-- if for query and table -->

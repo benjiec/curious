@@ -1,0 +1,9 @@
+# core django stuff
+Django == 1.6
+
+# parser
+parsimonious == 0.5
+
+# assets
+webassets == 0.8
+jsmin == 2.0.9

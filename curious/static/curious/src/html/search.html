@@ -1,0 +1,39 @@
+<div class="container-fluid">
+
+<p>
+  <a href="#/" class="lead">Curious</a>
+</p>
+
+<div class="well">
+  <form ng-submit="submitQuery()">
+    <div class="input-group">
+      <span class="input-group-addon">Query</span>
+      <input class="form-control" ng-model="query" ng-change="delayCheckQuery()" />
+    </div>
+  </form>
+</div>
+
+<p ng-if="query_error">
+  <span class="label label-danger">Query Syntax Error</span>
+  <code>{{ query_error }}</code
+</p>
+
+<p ng-if="query_accepted">
+  <span class="label label-info">Valid Query</span>
+  <code>{{ query_accepted }}</code>
+</p>
+
+<div id="results">
+  <div ng-repeat="query in query_submitted">
+    <partial template="query" ng-controller="QueryController"></partial>
+  </div>
+</div>
+
+<div id="queries">
+  <p><h4>Recent Queries</h4></p>
+  <div ng-repeat="query in recent_queries">
+    <a href="#/q/{{ query|encodeURI }}">{{ query }}</a>
+  </div>
+</div>
+
+</div> <!-- container-fluid -->

@@ -1,0 +1,35 @@
+QUERY_PEG = """
+query        = object_query space* steps? nl?
+object_query = model filter_or_id
+filter_or_id = rel_filter / id_arg
+id_arg       = "(" space* id space* ")"
+steps        = step another_step*
+another_step = space* step
+step         = one_query / sub_query
+sub_query    = modifier "(" steps ")"
+modifier     = "+" / "-"
+one_query    = one_rel recursion?
+one_rel      = model "." identifier rel_filter?
+rel_filter   = ".exclude"? "(" filters ")"
+recursion    = "*" "*"?
+model        = identifier
+filters      = space* arg another_arg* space*
+another_arg  = space* "," space* arg
+arg          = arg_name space* "=" space* values
+arg_name     = identifier
+values       = array_value / value
+array_value  = "[" space* value another_val* space* "]"
+another_val  = space* "," space* value
+value        = string / bool / float / int / null
+int          = ~"\\-?[0-9]+"
+float        = ~"\\-?[0-9]\\.[0-9]+"
+bool         = "True" / "False"
+string       = sq_string / dq_string
+dq_string    = "\\\"" ~"[^\\\"]*" "\\\""
+sq_string    = "\\\'" ~"[^\\\']*" "\\\'"
+null         = "None"
+identifier   = ~"[_A-Z][A-Z0-9_]*"i
+id           = ~"[A-Z0-9_]+"i
+space        = " " / "\\t"
+nl           = "\\n"
+"""
