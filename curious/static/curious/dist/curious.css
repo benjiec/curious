@@ -1,0 +1,16 @@
+#results { margin-top: 20px; }
+#queries { margin-top: 40px; }
+#results-header { margin: 5px 0px; }
+
+/* in case there are long words, like sequences */
+td.wrap, th.wrap { word-wrap: break-word; }
+
+/* force line wrap when displaying queries as code */
+code { white-space:normal !important; }
+
+/* recommended relations list */
+.rel-list { list-style-type: none; margin-left: 0px; padding: 4px; width: inherit; }
+.rel-list li { margin: 2px 0px; white-space: nowrap; }
+.rel-list li:nth-child(even) { background-color: #f0f0f0; }
+.rel-list li .rel-name { display: inline-block; word-wrap: break-word; vertical-align: top; }
+.rel-list li .rel-actions { vertical-align: top; margin-right: 10px; white-space: nowrap; }
