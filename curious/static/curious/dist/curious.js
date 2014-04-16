@@ -1,156 +1,209 @@
-'use strict';
+// Each Query object has a main query, as well as an arry of join queries. Each
+// join query applies to the results of the previous query or the main query.
+// For the time being the main query is treated differently than join queries,
+// because we may want to support the concept of a single main query and many
+// different arrays of join queries.
 
-function QueryController($scope, $http, $location) {
+function curiousQuery(main_query, join_queries) {
+  var q = { main_query: main_query,
+            join_queries: join_queries
+          };
+  return q;
+}
 
-  function init_query() {
-    $scope.search_result = undefined;
-    $scope.search_error = undefined;
-    $scope.completed = false;
-    $scope.success = false;
-    $scope.last_model = undefined;
-    $scope.last_model_rels = [];
-    $scope.table = undefined;
+// Parses a query from routeParams and returns a curiousQuery object.
+//
+function curiousParseQueryFromRouteParam(query_param) {
+  var q = query_param;
+  q = q.split('/');
+  return curiousQuery(q[0], q.slice(1));
+}
+
+// Parses a query from routeParams and returns a curiousQuery object.
+//
+function curiousQueryToRouteParam(query) {
+  var queries = query.join_queries.slice(0);
+  queries.unshift(query.main_query);
+  return queries.join('/');
+}
+
+// QueryForm: data structure for augmenting an existing query by extending the
+// last join, or adding a new join query.
+
+function curiousQueryForm(query, check_query_f, new_query_f, set_form_cb) {
+  // Constructor:
+  //   query:         in a curiousQuery object
+  //   check_query_f: function to call server to check query, takes a query string
+  //   set_form_cb:   function to set updated form data structure
+  //   new_query_f:   function to call to execute a new query, takes a curiousQuery object
+
+  var form = {
+    main_query: query.main_query,
+    prev_joins: [],
+    last_join: undefined,
+    new_join: "",
+    query_error: ""
   }
 
-  function get_model(model, cb) {
-    var url = $scope.__base_url+'/models/'+model+'/';
-    $http.get(url).success(function(data) {
-      if (data.result) { cb(data.result, undefined); }
-      else { cb(undefined, "Cannot retrieve model information from server"); }
-    })
-    .error(function(data, status, headers, config) {
-      if (data.error) { cb(undefined, data.error.message); }
-      else { cb(undefined, "Unspecified error from server"); }
+  if (query.join_queries.length > 0) {
+    form.prev_joins = query.join_queries.slice(0, query.join_queries.length-1);
+    form.last_join = query.join_queries[query.join_queries.length-1];
+  }
+
+  function update_form() {
+    set_form_cb({
+      form: form,
+      queryArray: function() { return query_with_all_joins(true); },
+      addRelToJoin: add_rel_to_join,
+      extendJoin: extend_join,
+      addJoinToQuery: add_join_to_query,
+      newJoin: new_join
     });
   }
 
-  function get_object(model, id, cb) {
-    var url = $scope.__base_url+'/objects/'+model+'/'+id+'/';
-    $http.get(url).success(function(data) {
-      if (data.result) { cb(data.result); }
-    });
-  }
-
-  function do_query(query, cb) {
-    var url = $scope.__base_url+'/q/';
-    var url = url+'?q='+encodeURIComponent(query);
-    $http.get(url)
-      .success(function(data) {
-        if (data.result) { cb(data.result, undefined); }
-        else { cb(undefined, "Did not receive results from server"); }
-      })
-      .error(function(data, status, headers, config) {
-        if (data.error) { cb(undefined, data.error.message); }
-        else { cb(undefined, "Unspecified error from server"); }
-      });
-  }
-
-  function execute() {
-    init_query();
-
-    var queries = query_with_all_joins(true);
-    curiousJoinQuery(queries, do_query, function(entries, model_name, err) {
-      $scope.completed = true;
-      if (err) {
-        $scope.success = false;
-        $scope.search_error = err;
-      }
-      else {
-        $scope.success = true;
-        if (entries.length > 0) {
-          // fetch information about the model of the last query, so we can
-          // list recommended relationships.
-          $scope.last_model = model_name;
-          get_model(model_name, function(result, error) {
-            if (result) {
-              if (result.relationships) { $scope.last_model_rels = result.relationships; }
-            }
-          });
-          // create join table
-          curiousJoinTable(queries, entries, function(tbl) { $scope.table = tbl; }, get_object);
-        }
-      }
-    });
-  }
-
-  function query_with_all_joins(array) {
-    var q = [$scope.q_j.main_query];
-    for (var j in $scope.q_j.prev_joins) { q.push($scope.q_j.prev_joins[j]); }
-    if ($scope.q_j.last_join) { q.push($scope.q_j.last_join); }
-    if ($scope.q_j.new_join != '') { q.push($scope.q_j.new_join); }
-    if (array && array == true) { return q; }
+  function query_with_all_joins(return_array) {
+    var q = [form.main_query];
+    for (var j in form.prev_joins) { q.push(form.prev_joins[j]); }
+    if (form.last_join) { q.push(form.last_join); }
+    if (form.new_join != '') { q.push(form.new_join); }
+    if (return_array && return_array == true) { return q; }
     return q.join(' ');
   }
 
+  // check queries are correct or not. if correct, calls cb with new
+  // curiousQuery object.
+  //
   function check_queries(cb) {
     var query_to_check = query_with_all_joins();
-    $scope._checkQuery(query_to_check, function(query, err) {
+    check_query_f(query_to_check, function(query, err) {
       if (query !== '') {
-        $scope.query_error = '';
+        form.query_error = '';
         var queries = query_with_all_joins(true);
-        cb(queries);
+        var q = curiousQuery(queries[0], queries.slice(1));
+        cb(q);
       }
-      else { $scope.query_error = err; }
+      else {
+        form.query_error = err;
+        update_form();
+      }
     });
   }
 
-  function new_query(queries) {
-    var q = queries.join('/');
-    var url = '/q/'+encodeURI(q);
+  function add_rel_to_join(model, rel) {
+    form.last_join = form.last_join+' '+model+'.'+rel;
+    form.new_join = '';
+    check_queries(function(q) { new_query_f(q); });
+  };
+
+  function extend_join() {
+    form.new_join = '';
+    check_queries(function(q) { new_query_f(q); });
+  };
+
+  function add_join_to_query(model, rel) {
+    form.new_join = '';
+    // check query first, so we don't push bad queries onto prev_joins
+    check_queries(function(q) {
+      if (form.last_join) { form.prev_joins.push(form.last_join); }
+      form.last_join = model+'.'+rel;
+      // don't need to check again, since model+rel is from recommended rels
+      var queries = query_with_all_joins(true);
+      var q = curiousQuery(queries[0], queries.slice(1));
+      new_query_f(q);
+    });
+  };
+
+  function new_join() {
+    // check query first, so we don't push bad queries onto prev_joins
+    check_queries(function(q) {
+      if (form.last_join) { form.prev_joins.push(form.last_join); }
+      form.last_join = form.new_join;
+      form.new_join = '';
+      // don't need to check again, check_queries already included new_join
+      var queries = query_with_all_joins(true);
+      var q = curiousQuery(queries[0], queries.slice(1));
+      new_query_f(q);
+    });
+  };
+
+  update_form();
+}
+
+'use strict';
+
+function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
+  $scope.__base_url = '/curious';
+
+  $scope.query = '';
+  $scope.query_error = '';
+  $scope.query_accepted = '';
+
+  $scope.delayPromise = undefined;
+  $scope.recent_queries = RecentQueries;
+
+  $scope.query_submitted = [];
+
+  if ($routeParams && $routeParams.query) {
+    var q = curiousParseQueryFromRouteParam($routeParams.query);
+    $scope.query = q.main_query;
+    $scope.query_submitted = [q];
+    var i = $scope.recent_queries.indexOf($routeParams.query);
+    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
+  }
+
+  $scope.delayCheckQuery = function() {
+    if ($scope.delayPromise !== undefined) {
+      $timeout.cancel($scope.delayPromise);
+      $scope.delayPromise = undefined;
+    }
+    $scope.delayPromise = $timeout(function() {
+      $scope.checkQuery();
+      $scope.delayPromise = undefined;
+    }, 1000);
+  };
+
+  $scope._check_query = function(query_string, cb) {
+    var url = $scope.__base_url+'/q/';
+    var url = url+'?c=1&q='+encodeURIComponent(query_string);
+    $http.get(url)
+      .success(function(data) { cb(data.result.query, ''); })
+      .error(function(data, status, headers, config) {
+        var err = '';
+        if (data.error) { err = data.error.message; }
+        else { err = 'Unspecified error'; }
+        cb('', err);
+      });
+  };
+
+  // query: curiousQuery object
+  $scope._new_query = function(query) {
+    var query_string = curiousQueryToRouteParam(query);
+    var url = '/q/'+encodeURI(query_string);
     $location.path(url);
   }
 
-  $scope.addRelToJoin = function(model, rel) {
-    $scope.q_j.last_join = $scope.q_j.last_join+' '+model+'.'+rel;
-    $scope.q_j.new_join = '';
-    check_queries(function(queries) { new_query(queries); });
-  };
-
-  $scope.extendJoin = function() {
-    $scope.q_j.new_join = '';
-    check_queries(function(queries) { new_query(queries); });
-  };
-
-  $scope.addJoinToQuery = function(model, rel) {
-    $scope.q_j.new_join = '';
-    // check query first, so we don't push bad queries onto prev_joins
-    check_queries(function(queries) {
-      if ($scope.q_j.last_join) { $scope.q_j.prev_joins.push($scope.q_j.last_join); }
-      $scope.q_j.last_join = model+'.'+rel;
-      // don't need to check again, since model+rel is from recommended rels
-      queries = query_with_all_joins(true);
-      new_query(queries);
+  $scope.checkQuery = function(cb) {
+    $scope._check_query($scope.query, function(query_string, err) {
+      $scope.query_error = err;
+      $scope.query_accepted = query_string;
+      if (cb !== undefined) { cb(query_string, err); }
     });
   };
 
-  $scope.newJoin = function() {
-    // check query first, so we don't push bad queries onto prev_joins
-    check_queries(function(queries) {
-      if ($scope.q_j.last_join) { $scope.q_j.prev_joins.push($scope.q_j.last_join); }
-      $scope.q_j.last_join = $scope.q_j.new_join;
-      $scope.q_j.new_join = '';
-      // don't need to check again, check_queries already included new_join
-      queries = query_with_all_joins(true);
-      new_query(queries);
+  $scope.submitQuery = function () {
+    $scope.checkQuery(function(query_string, err) {
+      if (query_string !== '') {
+        var url = '/q/'+encodeURI(query_string);
+        $location.path(url);
+      }
     });
   };
 
-
-  $scope.q_j = { main_query: $scope.query.query,
-                 prev_joins: [],
-                 last_join: undefined,
-                 new_join: "" }
-
-  $scope.query_error = '';
-
-  if ($scope.query.joins.length > 0) {
-    $scope.q_j.prev_joins = $scope.query.joins.slice(0, $scope.query.joins.length-1);
-    $scope.q_j.last_join = $scope.query.joins[$scope.query.joins.length-1];
-  }
-
-  init_query();
-  execute();
-};
+  $scope.newMainQuery = function(query, model, rel) {
+    $scope.query = query+' '+model+'.'+rel;
+    $scope.submitQuery();
+  };
+}
 
 var app = angular.module('curious', ['ngRoute'])
   .config(['$routeProvider', function($routeProvider) {
@@ -264,6 +317,19 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
     });
   }
 
+  function csv_string() {
+    var A = [['n','sqrt(n)']];
+    for(var j=1; j<10; ++j){ 
+      A.push([j, Math.sqrt(j)]);
+    }
+    var csvRows = [];
+    for(var i=0, l=A.length; i<l; ++i){
+      csvRows.push(A[i].join(','));
+    }
+    var csvString = csvRows.join("%0A");
+    return csvString;
+  }
+
   // update table data structure after a model's attributes list has changed.
   // the attributes list can change if user wants to show or hide a model's
   // attributes.
@@ -288,10 +354,11 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
       tbl_rows.push(row);
     }
     // console.log(tbl_rows);
-      
+
     // tell angular to re-render
     set_table_cb({
       toggle: toggle,
+      csv: csv_string,
       queries: tbl_queries,
       attrs: tbl_attrs,
       rows: tbl_rows
@@ -457,70 +524,79 @@ function curiousJoinQuery(queries, do_query_f, cb) {
 
 'use strict';
 
-function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
-  $scope.__base_url = '/curious';
+function QueryController($scope, $http) {
 
-  $scope.query = '';
-  $scope.query_error = '';
-  $scope.query_accepted = '';
-
-  $scope.delayPromise = undefined;
-  $scope.recent_queries = RecentQueries;
-
-  $scope.query_submitted = [];
-
-  if ($routeParams && $routeParams.query) {
-    var q = $routeParams.query;
-    q = q.split('/');
-    $scope.query = q[0];
-    $scope.query_submitted = [{ query: $scope.query, joins: q.slice(1) }];
-    var i = $scope.recent_queries.indexOf($routeParams.query);
-    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
+  function init_query() {
+    $scope.search_error = undefined;
+    $scope.completed = false;
+    $scope.success = false;
+    $scope.last_model = undefined;
+    $scope.last_model_rels = [];
+    $scope.table = undefined;
   }
 
-  $scope.delayCheckQuery = function() {
-    if ($scope.delayPromise !== undefined) {
-      $timeout.cancel($scope.delayPromise);
-      $scope.delayPromise = undefined;
-    }
-    $scope.delayPromise = $timeout(function() {
-      $scope.checkQuery();
-      $scope.delayPromise = undefined;
-    }, 1000);
-  };
-
-  $scope._checkQuery = function (query, cb) {
-    var url = $scope.__base_url+'/q/';
-    var url = url+'?c=1&q='+encodeURIComponent(query);
-    $http.get(url)
-      .success(function(data) { cb(data.result.query, ''); })
-      .error(function(data, status, headers, config) {
-        var err = '';
-        if (data.error) { err = data.error.message; }
-        else { err = 'Unspecified error'; }
-        cb('', err);
-      });
-  };
-
-  $scope.checkQuery = function(cb) {
-    $scope._checkQuery($scope.query, function(query, err) {
-      $scope.query_error = err;
-      $scope.query_accepted = query;
-      if (cb !== undefined) { cb(query, err); }
+  function get_model(model, cb) {
+    var url = $scope.__base_url+'/models/'+model+'/';
+    $http.get(url).success(function(data) {
+      if (data.result) { cb(data.result, undefined); }
+      else { cb(undefined, "Cannot retrieve model information from server"); }
+    })
+    .error(function(data, status, headers, config) {
+      if (data.error) { cb(undefined, data.error.message); }
+      else { cb(undefined, "Unspecified error from server"); }
     });
-  };
+  }
 
-  $scope.submitQuery = function () {
-    $scope.checkQuery(function(query, err) {
-      if (query !== '') {
-        var url = '/q/'+encodeURI(query);
-        $location.path(url);
+  function get_object(model, id, cb) {
+    var url = $scope.__base_url+'/objects/'+model+'/'+id+'/';
+    $http.get(url).success(function(data) {
+      if (data.result) { cb(data.result); }
+    });
+  }
+
+  function do_query(query_string, cb) {
+    var url = $scope.__base_url+'/q/';
+    var url = url+'?q='+encodeURIComponent(query_string);
+    $http.get(url)
+      .success(function(data) {
+        if (data.result) { cb(data.result, undefined); }
+        else { cb(undefined, "Did not receive results from server"); }
+      })
+      .error(function(data, status, headers, config) {
+        if (data.error) { cb(undefined, data.error.message); }
+        else { cb(undefined, "Unspecified error from server"); }
+      });
+  }
+
+  function execute() {
+    init_query();
+
+    var queries = $scope.query.queryArray();
+    curiousJoinQuery(queries, do_query, function(entries, model_name, err) {
+      $scope.completed = true;
+      if (err) {
+        $scope.success = false;
+        $scope.search_error = err;
+      }
+      else {
+        $scope.success = true;
+        if (entries.length > 0) {
+          // fetch information about the model of the last query, so we can
+          // list recommended relationships.
+          $scope.last_model = model_name;
+          get_model(model_name, function(result, error) {
+            if (result) {
+              if (result.relationships) { $scope.last_model_rels = result.relationships; }
+            }
+          });
+          // create join table
+          curiousJoinTable(queries, entries, function(tbl) { $scope.table = tbl; }, get_object);
+        }
       }
     });
-  };
+  }
 
-  $scope.addRelToQuery = function(query, model, rel) {
-    $scope.query = query+' '+model+'.'+rel;
-    $scope.submitQuery();
-  };
-}
+  curiousQueryForm($scope.query, $scope._check_query, $scope._new_query,
+                   function(data) { $scope.query = data; });
+  execute();
+};

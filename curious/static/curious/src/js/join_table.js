@@ -75,6 +75,19 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
     });
   }
 
+  function csv_string() {
+    var A = [['n','sqrt(n)']];
+    for(var j=1; j<10; ++j){ 
+      A.push([j, Math.sqrt(j)]);
+    }
+    var csvRows = [];
+    for(var i=0, l=A.length; i<l; ++i){
+      csvRows.push(A[i].join(','));
+    }
+    var csvString = csvRows.join("%0A");
+    return csvString;
+  }
+
   // update table data structure after a model's attributes list has changed.
   // the attributes list can change if user wants to show or hide a model's
   // attributes.
@@ -99,10 +112,11 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
       tbl_rows.push(row);
     }
     // console.log(tbl_rows);
-      
+
     // tell angular to re-render
     set_table_cb({
       toggle: toggle,
+      csv: csv_string,
       queries: tbl_queries,
       attrs: tbl_attrs,
       rows: tbl_rows
