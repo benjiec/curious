@@ -14,3 +14,12 @@ code { white-space:normal !important; }
 .rel-list li:nth-child(even) { background-color: #f0f0f0; }
 .rel-list li .rel-name { display: inline-block; word-wrap: break-word; vertical-align: top; }
 .rel-list li .rel-actions { vertical-align: top; margin-right: 10px; white-space: nowrap; }
+
+textarea.csv {
+  font-family: courier;
+  font-size: 0.8em;
+  width: 100%;
+  height: 150px;
+  border: 1px solid #f0f0f0;
+}
+

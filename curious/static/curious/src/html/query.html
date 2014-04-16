@@ -79,8 +79,9 @@
   </tr>
 </table>
 
-<p>
-<a href="data:attachment/csv,{{ table.csv }}" target="_blank" download="data.csv">Click to download</a>
+<p ng-if="!table.csv">
+  <a href="javascript:void(0)" ng-click="table.showCSV()">Show CSV</a>
 </p>
+<textarea class="csv" ng-if="table.csv" readonly>{{ table.csv }}</textarea>
 
 </div> <!-- if for results table -->

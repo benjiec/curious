@@ -18,6 +18,7 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
   var tbl_queries = [];
   var tbl_attrs = [];
   var tbl_rows = [];
+  var tbl_csv = undefined;
 
   // create a dict of objects, add ptr to object from each cell in entries
   // table. this allows sharing of objects if there are duplicates in query
@@ -75,17 +76,52 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
     });
   }
 
-  function csv_string() {
-    var A = [['n','sqrt(n)']];
-    for(var j=1; j<10; ++j){ 
-      A.push([j, Math.sqrt(j)]);
+  function csv() {
+    if (tbl_rows.length == 0) { return ""; }
+    var csv_rows = []
+
+    var row0 = tbl_rows[0];
+    var header = [];
+    for (var i=0; i<tbl_attrs.length; i++) {
+      var model = row0[i].model;
+      header.push(model+'.'+tbl_attrs[i]);
     }
-    var csvRows = [];
-    for(var i=0, l=A.length; i<l; ++i){
-      csvRows.push(A[i].join(','));
+    csv_rows.push(header.join(','));
+
+    for (var i=0; i<tbl_rows.length; i++) {
+      var row = [];
+      for (var j=0; j<tbl_rows[i].length; j++) {
+        var entry = tbl_rows[i][j];
+        if (entry) {
+          var obj = entry.ptr;
+          if (obj) {
+            var v = obj[tbl_attrs[j]];
+            if (v.display) { v = v.display; }
+            if (v) {
+              v = ''+v;
+              // dumb escape logic for csv value - basically gets rid of space and quotes
+              v = v.replace("\n", " ");
+              v = v.replace("\t", " ");
+              v = v.replace("\"", "");
+              v = v.replace("\'", "");
+              v = "\""+v+"\"";
+            }
+            row.push(v);
+          }
+          else {
+            if (tbl_attrs[j] == 'id') { row.push(entry.id); }
+            else { row.push(''); }
+          }
+        }
+        else {
+          if (tbl_attrs[j] == 'id') { row.push(entry.id); }
+          else { row.push(''); }
+        }
+      }
+      csv_rows.push(row.join(','));
     }
-    var csvString = csvRows.join("%0A");
-    return csvString;
+
+    return csv_rows.join('\n');
   }
 
   // update table data structure after a model's attributes list has changed.
@@ -113,10 +149,16 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
     }
     // console.log(tbl_rows);
 
+    if (tbl_csv) { tbl_csv = csv(); }
+    update_controller();
+  }
+
+  function update_controller() {
     // tell angular to re-render
     set_table_cb({
       toggle: toggle,
-      csv: csv_string,
+      showCSV: showCSV,
+      csv: tbl_csv,
       queries: tbl_queries,
       attrs: tbl_attrs,
       rows: tbl_rows
@@ -170,6 +212,11 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
   function toggle(query_idx) {
     if (models[query_idx].attrs.length == 1) { show_object_attrs(query_idx); }
     else { hide_object_attrs(query_idx); }
+  }
+
+  function showCSV() {
+    tbl_csv = csv();
+    update_controller();
   }
 
   update_table(); // initialize table
