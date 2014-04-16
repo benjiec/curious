@@ -86,8 +86,8 @@ class ASTBuilder(NodeVisitor):
   def visit_recursion(self, node, (star, double_star)):
     """Returns True if collecting terminal nodes, False if collecting intermediate nodes"""
     if type(double_star) == list and double_star[0].text == '*':
-      return False
-    return True
+      return True
+    return False
 
   def visit_model(self, node, v):
     return v[0]
