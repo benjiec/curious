@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import subprocess
 from setuptools import setup
 
@@ -13,8 +14,9 @@ with open("requirements.txt", "r") as f:
     install_requires = [x.strip() for x in f.readlines() if not x.strip().startswith("#")]
 
 def bower():
-  print 'Running bower update in %s' % os.getcwd()
-  subprocess.call(['bower', 'update'])
+  if sys.argv[1] in ['develop', 'install']:
+    print 'Running bower update in %s' % os.getcwd()
+    subprocess.call(['bower', 'update'])
 
 bower()
 
