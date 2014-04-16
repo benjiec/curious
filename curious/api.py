@@ -33,15 +33,15 @@ class ModelView(JSONView):
   def model_to_dict(cls):
     d = dict(model=cls.__name__, relationships=[])
     for f in dir(cls):
-      if _valid_django_rel(getattr(cls, f)) or model_registry.allow_rel(cls.__name__, f):
+      if _valid_django_rel(getattr(cls, f)) or model_registry.allow_rel(cls, f):
         d['relationships'].append(f)
     return d
 
   def get(self, request, model_name):
     try:
       cls = model_registry.getclass(model_name)
-    except:
-      return self._error(404, "Unknown model '%s'" % model_name)
+    except Exception as e:
+      return self._error(404, "Unknown model '%s': %s" % (model_name, str(e)))
     return self._return(200, ModelView.model_to_dict(cls))
 
 
@@ -55,7 +55,8 @@ class ObjectView(JSONView):
       if type(f) == ForeignKey:
         v = getattr(obj, f.name)
         if v is not None:
-          d[f.column] = {'model': v.__class__.__name__, 'id': v.pk, '__str__': str(v)}
+          model_name = model_registry.getname(v.__class__)
+          d[f.column] = {'model': model_name, 'id': v.pk, '__str__': str(v)}
     return d
 
   def get(self, request, model_name, id):
@@ -100,9 +101,10 @@ class QueryView(JSONView):
       results = {}
       return self._return(200, results)
 
-    models = list(set([type(obj).__name__ for obj in objects]))
+    models = list(set([type(obj) for obj in objects]))
     if len(models) != 1:
       raise Exception("List of objects returned non-unique or no model")
 
-    results = {'model': models[0], 'ids': [obj.pk for obj in objects]}
+    model_name = model_registry.getname(models[0])
+    results = {'model': model_name, 'ids': [obj.pk for obj in objects]}
     return self._return(200, results)
