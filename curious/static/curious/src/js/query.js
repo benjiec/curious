@@ -12,19 +12,6 @@ function QueryController($scope, $http, $location) {
     $scope.table = undefined;
   }
 
-  init_query();
-
-  $scope.q_j = { main_query: $scope.query.query,
-                 prev_joins: [],
-                 last_join: undefined,
-                 new_join: "" }
-  $scope.query_error = '';
-
-  if ($scope.query.joins.length > 0) {
-    $scope.q_j.prev_joins = $scope.query.joins.slice(0, $scope.query.joins.length-1);
-    $scope.q_j.last_join = $scope.query.joins[$scope.query.joins.length-1];
-  }
-
   function get_model(model, cb) {
     var url = $scope.__base_url+'/models/'+model+'/';
     $http.get(url).success(function(data) {
@@ -34,6 +21,13 @@ function QueryController($scope, $http, $location) {
     .error(function(data, status, headers, config) {
       if (data.error) { cb(undefined, data.error.message); }
       else { cb(undefined, "Unspecified error from server"); }
+    });
+  }
+
+  function get_object(model, id, cb) {
+    var url = $scope.__base_url+'/objects/'+model+'/'+id+'/';
+    $http.get(url).success(function(data) {
+      if (data.result) { cb(data.result); }
     });
   }
 
@@ -148,151 +142,6 @@ function QueryController($scope, $http, $location) {
     }
   }
 
-  function create_join_table(join_queries, entries) {
-    var join_queries = join_queries;
-    var entries = entries;
-    var objects = [];
-
-    // these variables are created once for each table
-    var tbl_queries = [];
-    var tbl_models = [];
-
-    // these variables are updated dynamically as objects get fetched
-    var tbl_attrs = [];
-    var tbl_rows = [];
-
-    // sets public accessible attrs of the join table
-    //
-    function set_scope_table() {
-      $scope.table = {
-        toggle: toggle,
-        queries: tbl_queries,
-        attrs: tbl_attrs,
-        rows: tbl_rows
-      }
-    }
-
-    // create a dict of objects, add ptr to object from each cell in
-    // entries table
-    for (var i=0; i<entries.length; i++) {
-      for (var j=0; j<entries[i].length; j++) {
-        var entry = entries[i][j];
-        var obj_id = entry.model+'.'+entry.id;
-        if (objects[obj_id] === undefined) {
-          objects[obj_id] = { id: entry.id }
-        }
-        entry['ptr'] = objects[obj_id];
-      }
-    }
-
-    for (var i=0; i<join_queries.length; i++) {
-      var cols = 1;
-      tbl_queries.push({query: join_queries[i], cols: cols});
-    }
-    for (var j=0; j<entries[0].length; j++) {
-      tbl_models.push({model: entries[0][j].model, attrs: ['id'], loaded: false});
-    }
-
-    function get_object(model, id, cb) {
-      var obj_id = model+'.'+id;
-      if (obj_id in objects && objects[obj_id]['__fetched__']) {
-        cb(objects[obj_id]['__fetched__']);
-        return;
-      }
-
-      var url = $scope.__base_url+'/objects/'+model+'/'+id+'/';
-      $http.get(url).success(function(data) {
-        var result = data.result;
-        var ptr = objects[obj_id];
-        ptr['id'] = id;
-        ptr['__fetched__'] = result;
-        for (var a in result) {
-          var v = result[a];
-          var s = v;
-          if (v && v.model && '__str__' in v) {
-            s = v['__str__'];
-            if (v.id) { s += ' ('+v.id+')'; }
-          }
-          ptr[a] = {value: v, display: s};
-        }
-        // console.log(ptr);
-        if (cb) { cb(result); }
-      });
-    }
-
-    function update_table() {
-      tbl_attrs = [];
-      var attr_model_idx = [];
-      for (var i=0; i<tbl_models.length; i++) {
-        for (var j=0; j<tbl_models[i].attrs.length; j++) {
-          tbl_attrs.push(tbl_models[i].attrs[j]);
-          attr_model_idx.push(i);
-        }
-      }
-      // console.log(tbl_attrs);
-
-      tbl_rows = [];
-      for (var i=0; i<entries.length; i++) {
-        var row = [];
-        for (var j=0; j<tbl_attrs.length; j++) {
-          var k = attr_model_idx[j];
-          row.push(entries[i][k]);
-        }
-        tbl_rows.push(row);
-      }
-      // console.log(tbl_rows);
-    }
-
-    function get_object_cb(column_idx, object) {
-      if (tbl_models[column_idx].attrs.length == 1) {
-        var attrs = [];
-        for (var a in object) { if (a !== 'id') { attrs.push(a); } }
-        attrs.sort();
-        attrs.unshift('id');
-        tbl_models[column_idx].attrs = attrs;
-        tbl_queries[column_idx].cols = attrs.length;
-        // console.log('set attrs for '+column_idx+': '+attrs);
-        update_table();
-        set_scope_table(); // update scope variables so angular can re-render
-      }
-    }
-
-    function fetch_column(column_idx) {
-      if (tbl_models[column_idx].loaded == true) {
-        obj = entries[0][column_idx];
-        get_object(obj.model, obj.id, function(obj_data) {
-          get_object_cb(column_idx, obj_data);
-        });
-        return;
-      }
-      for (var i=0; i<entries.length; i++) {
-        var obj = entries[i][column_idx];
-        // console.log('fetch '+obj.model+'.'+obj.id);
-        get_object(obj.model, obj.id, function(obj_data) {
-          get_object_cb(column_idx, obj_data);
-        });
-      }
-      tbl_models[column_idx].loaded = true;
-    }
-
-    function hide_column(column_idx) {
-      tbl_models[column_idx].attrs = ['id'];
-      tbl_queries[column_idx].cols = 1;
-      update_table();
-      set_scope_table(); // update scope variables so angular can re-render
-    }
-
-    function toggle(column_idx) {
-      if (tbl_models[column_idx].attrs.length == 1) { fetch_column(column_idx); }
-      else { hide_column(column_idx); }
-    }
-
-    update_table(); // initialize table
-    // by default, fetch objects from last query
-    fetch_column(entries[0].length-1);
-    set_scope_table();
-  }
-
   function execute() {
     init_query();
 
@@ -308,13 +157,16 @@ function QueryController($scope, $http, $location) {
       else {
         $scope.success = true;
         if (entries.length > 0) {
+          // fetch information about the model of the last query, so we can
+          // list recommended relationships.
           $scope.last_model = model_name;
           get_model(model_name, function(result, error) {
             if (result) {
               if (result.relationships) { $scope.last_model_rels = result.relationships; }
             }
           });
-          create_join_table(queries, entries);
+          // create join table
+          curiousJoinTable(queries, entries, function(tbl) { $scope.table = tbl; }, get_object);
         }
       }
     });
@@ -382,5 +234,18 @@ function QueryController($scope, $http, $location) {
     });
   };
 
+
+  $scope.q_j = { main_query: $scope.query.query,
+                 prev_joins: [],
+                 last_join: undefined,
+                 new_join: "" }
+  $scope.query_error = '';
+
+  if ($scope.query.joins.length > 0) {
+    $scope.q_j.prev_joins = $scope.query.joins.slice(0, $scope.query.joins.length-1);
+    $scope.q_j.last_join = $scope.query.joins[$scope.query.joins.length-1];
+  }
+
+  init_query();
   execute();
 };
