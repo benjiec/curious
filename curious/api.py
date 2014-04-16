@@ -101,7 +101,8 @@ class QueryView(JSONView):
       return self._return(200, results)
 
     models = list(set([type(obj).__name__ for obj in objects]))
-    assert len(models) == 1
+    if len(models) != 1:
+      raise Exception("List of objects returned non-unique or no model")
 
     results = {'model': models[0], 'ids': [obj.pk for obj in objects]}
     return self._return(200, results)

@@ -46,7 +46,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
 
     # FK from instance to a related object
     elif type(rel_obj_descriptor) == ReverseSingleRelatedObjectDescriptor:
-      queryset = rel_obj_descriptor.get_prefetch_queryset(instances)
+      queryset = rel_obj_descriptor.get_prefetch_queryset(instances)[0]
 
     # the following three relationships have the same logic, but because they
     # use separately defined descriptor classes in django, they get separate if
