@@ -67,14 +67,12 @@
   </tr>
 
   <tr class="success">
-    <th class="wrap"
-        ng-repeat="attr in table.attrs track by $index">{{ attr }}</th>
+    <th class="wrap" ng-repeat="attr in table.attrs track by $index">{{ attr }}</th>
   </tr>
 
   <tr ng-repeat="row in table.rows track by $index">
-    <td class="wrap"
-        ng-repeat="object in row track by $index" ng-init="attr = table.attrs[$index]">
-      {{ object.ptr[attr]|showAttr }}
+    <td class="wrap" ng-repeat="object in row track by $index">
+      {{ object.ptr[table.attrs[$index]]|showAttr }}
     </td>
   </tr>
 </table>
