@@ -462,8 +462,9 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
   }
 
   update_table(); // initialize table
-  // by default, fetch objects from last query
-  show_object_attrs(entries[0].length-1);
+
+  // by default, fetch objects from last query if table is not too big
+  if (entries.length < 200) { show_object_attrs(entries[0].length-1); }
 }
 
 // JoinQuery takes a list of queries, call first one, then recursively call
