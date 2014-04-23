@@ -106,5 +106,6 @@ class QueryView(JSONView):
       raise Exception("List of objects returned non-unique or no model")
 
     model_name = model_registry.getname(models[0])
-    results = {'model': model_name, 'ids': [obj.pk for obj in objects]}
+    results = {'model': model_name,
+               'objects': [(obj.pk, model_registry.geturl(model_name, obj)) for obj in objects]}
     return self._return(200, results)

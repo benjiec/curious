@@ -1,4 +1,4 @@
-var app = angular.module('curious', ['ngRoute'])
+var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
       .when('/', {template: JST['search'],

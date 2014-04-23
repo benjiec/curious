@@ -74,7 +74,8 @@
 
   <tr ng-repeat="row in table.rows track by $index">
     <td class="wrap" ng-repeat="object in row track by $index">
-      {{ object.ptr[table.attrs[$index]]|showAttr }}
+      <span ng-bind-html="object.ptr[table.attrs[$index]]|showAttr"></span>
+      <span ng-bind-html="object.ptr[table.attrs[$index]].display"></span>
     </td>
   </tr>
 </table>

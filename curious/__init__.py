@@ -7,6 +7,7 @@ class ModelRegistry(object):
   def __init__(self):
     self.__name_shortcuts = {}
     self.__models = {}
+    self.__model_url_funcs = {}
 
   @staticmethod
   def model_name(model_class):
@@ -51,6 +52,10 @@ class ModelRegistry(object):
     model_name = self.translate_name(name)
     self.__models[model_name][1].append(rel)
 
+  def add_model_url_func(self, name, f):
+    model_name = self.translate_name(name)
+    self.__model_url_funcs[model_name] = f
+
   @property
   def model_names(self):
     return [k for k in self.__models]
@@ -69,6 +74,12 @@ class ModelRegistry(object):
       return cls.__name__
     except:
       return ModelRegistry.model_name(cls)
+
+  def geturl(self, name, obj):
+    model_name = self.translate_name(name)
+    if model_name in self.__model_url_funcs:
+      return self.__model_url_funcs[model_name](obj)
+    return None
 
   def getattr(self, name, method):
     cls = self.getclass(name)

@@ -205,7 +205,7 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
   };
 }
 
-var app = angular.module('curious', ['ngRoute'])
+var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
       .when('/', {template: JST['search'],
@@ -270,7 +270,9 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
       var entry = entries[i][j];
       var obj_id = entry.model+'.'+entry.id;
       if (objects[obj_id] === undefined) {
-        objects[obj_id] = { id: entry.id }
+        var id_str = entry.id;
+        if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
+        objects[obj_id] = {id: {value: entry.id, display: id_str }};
       }
       entry['ptr'] = objects[obj_id];
     }
@@ -300,7 +302,6 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
 
     get_object_f(model, id, function(obj_data) {
       var ptr = objects[obj_id];
-      ptr['id'] = id;
       ptr['__fetched__'] = obj_data;
       for (var a in obj_data) {
         // for each field, we have a value, and a display value that is shown
@@ -541,9 +542,12 @@ function curiousJoinQuery(queries, do_query_f, cb) {
           var entry = entries[i];
           var result = new_queries[i].result;
           if (result.model) { next_model_name = result.model; }
-          for (var n in result.ids) {
+          for (var n in result.objects) {
+            console.log(result.objects[n]);
             var new_entry = entry.slice(0);
-            new_entry.push({id: result.ids[n], model: result.model});
+            new_entry.push({id: result.objects[n][0],
+                            model: result.model,
+                            url: result.objects[n][1]});
             new_entries.push(new_entry);
           }
         }

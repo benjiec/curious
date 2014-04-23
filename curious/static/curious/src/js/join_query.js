@@ -72,9 +72,11 @@ function curiousJoinQuery(queries, do_query_f, cb) {
           var entry = entries[i];
           var result = new_queries[i].result;
           if (result.model) { next_model_name = result.model; }
-          for (var n in result.ids) {
+          for (var n in result.objects) {
             var new_entry = entry.slice(0);
-            new_entry.push({id: result.ids[n], model: result.model});
+            new_entry.push({id: result.objects[n][0],
+                            model: result.model,
+                            url: result.objects[n][1]});
             new_entries.push(new_entry);
           }
         }

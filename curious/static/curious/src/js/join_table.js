@@ -28,7 +28,9 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
       var entry = entries[i][j];
       var obj_id = entry.model+'.'+entry.id;
       if (objects[obj_id] === undefined) {
-        objects[obj_id] = { id: entry.id }
+        var id_str = entry.id;
+        if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
+        objects[obj_id] = {id: {value: entry.id, display: id_str }};
       }
       entry['ptr'] = objects[obj_id];
     }
@@ -58,7 +60,6 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
 
     get_object_f(model, id, function(obj_data) {
       var ptr = objects[obj_id];
-      ptr['id'] = id;
       ptr['__fetched__'] = obj_data;
       for (var a in obj_data) {
         // for each field, we have a value, and a display value that is shown
