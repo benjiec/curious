@@ -62,15 +62,21 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
       var ptr = objects[obj_id];
       ptr['__fetched__'] = obj_data;
       for (var a in obj_data) {
-        // for each field, we have a value, and a display value that is shown
-        // to the user.
-        var v = obj_data[a];
-        var s = v;
-        if (v && v.model && '__str__' in v) {
-          s = v['__str__'];
-          if (v.id) { s += ' ('+v.id+')'; }
+        // already has id field with link, don't overwrite that
+        if (a !== 'id') {
+          // for each field, we have a value, and a display value that is shown
+          // to the user.
+          var v = obj_data[a];
+          var s = v;
+          if (v && v.model) {
+            if ('__str__' in v) {
+              s = v['__str__'];
+              if (v.id) { s += ' ('+v.id+')'; }
+            }
+            if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+          }
+          ptr[a] = {value: v, display: s};
         }
-        ptr[a] = {value: v, display: s};
       }
       // console.log(ptr);
       if (cb) { cb(obj_data); }

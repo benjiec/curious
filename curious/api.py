@@ -56,7 +56,12 @@ class ObjectView(JSONView):
         v = getattr(obj, f.name)
         if v is not None:
           model_name = model_registry.getname(v.__class__)
-          d[f.column] = {'model': model_name, 'id': v.pk, '__str__': str(v)}
+          d[f.column] = {
+            'model': model_name,
+            'id': v.pk,
+            'url': model_registry.geturl(model_name, v),
+            '__str__': str(v)
+          }
     return d
 
   def get(self, request, model_name, id):
