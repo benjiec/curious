@@ -208,6 +208,8 @@ class Query(object):
 
       obj_src = Query._step(obj_src, step)
 
+    if len(obj_src) == 0:
+      return []
     res.append(obj_src)
     return res
 

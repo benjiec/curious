@@ -115,5 +115,5 @@ class QueryView(JSONView):
           }
       results.append(d)
 
-    print results
+    # print results
     return self._return(200, results)
