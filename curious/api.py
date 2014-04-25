@@ -106,11 +106,17 @@ class QueryView(JSONView):
       results = {}
       return self._return(200, results)
 
-    models = list(set([type(obj) for obj in objects]))
+    models = list(set([type(obj[0]) for obj in objects]))
     if len(models) != 1:
       raise Exception("List of objects returned non-unique or no model")
 
     model_name = model_registry.getname(models[0])
+
     results = {'model': model_name,
-               'objects': [(obj.pk, model_registry.geturl(model_name, obj)) for obj in objects]}
+               'objects': [(obj[0].pk,
+                            model_registry.geturl(model_name, obj[0]),
+                            obj[1]) for obj in objects]
+              }
+
+    print results
     return self._return(200, results)

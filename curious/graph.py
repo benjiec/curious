@@ -12,11 +12,18 @@ from django.db.models.fields.related import ForeignRelatedObjectsDescriptor
 from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor
 
+
+# The following django model attributes are relationships we can traverse
 def _valid_django_rel(rel_obj_descriptor):
   return type(rel_obj_descriptor) in (ReverseSingleRelatedObjectDescriptor,
                                       ForeignRelatedObjectsDescriptor,
                                       ReverseManyRelatedObjectsDescriptor,
                                       ManyRelatedObjectsDescriptor)
+
+
+# Use this attr of a query output object to determine the input object
+# producing the output object using the query.
+INPUT_ATTR_PREFIX = '_prefetch_related_val_'
 
 def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=False):
   """
@@ -34,27 +41,35 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
     if allow_missing_rel:
       return None
     else:
-      print type(rel_obj_descriptor)
       raise Exception("Cannot handle related object descriptor %s." % rel_obj_descriptor)
 
   def _get_related_objects(instances, filters=None):
     queryset = None
 
+    def apply_filters(q):
+      if filters is not None:
+        if '__exclude__' in filters:
+          ff = {k: v for k, v in filters.iteritems() if k != '__exclude__'}
+          return q.exclude(**ff)
+        else:
+          return q.filter(**filters)
+      return q
+
     # functioning defining a relationship
     if type(rel_obj_descriptor) in (types.FunctionType, types.MethodType):
-      queryset = rel_obj_descriptor(instances)
+      return rel_obj_descriptor(instances, apply_filters)
 
     # FK from instance to a related object
     elif type(rel_obj_descriptor) == ReverseSingleRelatedObjectDescriptor:
-      queryset = rel_obj_descriptor.get_prefetch_queryset(instances)[0]
-
-    # the following three relationships have the same logic, but because they
-    # use separately defined descriptor classes in django, they get separate if
-    # clauses below, for clarity and in case of changes in django.
+      table = instances[0]._meta.db_table
+      queryset = rel_obj_descriptor.get_prefetch_queryset(instances)[0]\
+                                   .extra(select={INPUT_ATTR_PREFIX: '%s.id' % table})
 
     # reverse FK from instance to related objects with FK to the instance
     elif type(rel_obj_descriptor) == ForeignRelatedObjectsDescriptor:
-      queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
+      model = instances[0]._meta.model_name
+      queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]\
+                                   .extra(select={INPUT_ATTR_PREFIX: '%s_id' % model})
 
     # M2M from instance to related objects
     elif type(rel_obj_descriptor) == ReverseManyRelatedObjectsDescriptor:
@@ -65,14 +80,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
 
     if queryset:
-      if filters:
-        if '__exclude__' in filters:
-          ff = {k: v for k, v in filters.iteritems() if k != '__exclude__'}
-          return queryset.exclude(**ff)
-        else:
-          return queryset.filter(**filters)
-      else:
-        return queryset
+      return apply_filters(queryset)
     return []
 
   # turn prefetching OFF
@@ -85,69 +93,38 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
   return get_related_objects
 
 
-def step_recursive(nodes, attr, loop_condition_f, continue_f=None, terminal_f=None, hop=0):
+def step_one(nodes, attr, filters=None):
   """
-  Recursively traverse related attr. At each node (starting with nodes), calls
-  loop_condition_f, then calls continue_f or terminal_f depending on the result
-  of loop_condition_f.
-
-  loop_condition_f: lambda node, hops
-  continue_f: lambda node
-  terminal_f: lambda node
+  Traverse one relationship on list of nodes. Returns output, input tuple
+  array, where input is the pk of the node producing the output object.
   """
 
   nodes = list(nodes) if type(nodes) == QuerySet else nodes
   nodes = [nodes] if type(nodes) not in [type([]), type((0,))] else nodes
-
-  continuing_nodes = []
-  for node in nodes:
-    if not loop_condition_f or loop_condition_f(node, hop):
-      if continue_f:
-        continue_f(node)
-      continuing_nodes.append(node)
-    else:
-      if terminal_f:
-        terminal_f(node)
-
-  if len(continuing_nodes) == 0:
-    return
-
-  f = get_related_obj_accessor(attr, continuing_nodes[0], True)
-  if f:  
-    nodes = f(continuing_nodes)
-    step_recursive(nodes, attr, loop_condition_f, continue_f, terminal_f, hop+1)
-
-
-def steps(nodes, attrs, filterl=None):
-  """
-  Starting with a node, walk one step at a time, using each of related attrs.
-  Does all queries in batch so the number of queries is number of
-  relationships.
-  """
-
-  attrs = [attrs] if type(attrs) not in [type([]), type((0,))] else attrs
-  nodes = list(nodes) if type(nodes) == QuerySet else nodes
-  nodes = [nodes] if type(nodes) not in [type([]), type((0,))] else nodes
-  if filterl is not None:
-    filterl = [filterl] if type(filterl) not in [type([]), type((0,))] else filterl
-
-  if filterl is not None:
-    if len(attrs) != len(filterl):
-      raise Exception('Attribute list and filter list must have same length')
 
   if len(nodes) == 0:
     return []
-  if len(attrs) == 0:
+  if attr is None:
     return nodes
 
-  for i, attr in enumerate(attrs):
-    f = get_related_obj_accessor(attr, nodes[0])
-    if filterl is not None:
-      filters = filterl[i]
-    else:
-      filters = None
-    nodes = f(nodes, filters=filters)
-    if len(nodes) == 0:
-      return []
+  f = get_related_obj_accessor(attr, nodes[0])
+  nodes = f(nodes, filters=filters)
 
-  return nodes
+  if len(nodes) == 0:
+    return []
+
+  # already in output, input tuple format
+  elif type(nodes[0]) == tuple:
+    return nodes
+
+  else:
+    nodes_with_src = []
+    for node in nodes:
+      src = None
+      for a in dir(node):
+        if a.startswith(INPUT_ATTR_PREFIX):
+          src = getattr(node, a)
+          break
+      nodes_with_src.append((node, src))
+
+    return nodes_with_src

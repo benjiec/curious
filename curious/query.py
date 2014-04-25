@@ -1,13 +1,15 @@
 from .parser import Parser
 from curious import model_registry
-from curious.graph import steps, step_recursive
+from curious.graph import step_one
+
+from django.db import connections
 
 
 class Query(object):
 
   def __init__(self, query):
-    self.__query = query
     parser = Parser(query)
+    self.__query = query
     self.__obj_query = parser.object_query
     self.__steps = parser.steps
     self.__validate()
@@ -62,37 +64,65 @@ class Query(object):
 
 
   @staticmethod
-  def _recursive_rel(objects, step_f, filters, need_terminal):
+  def _graph_step(obj_src, step_f, filters):
     """
-    Traverse a relationship recursively. Returns collected objects, either loop
-    terminating objects or loop continuing objects.
+    Traverse one step on the graph. Takes in and returns arrays of output,
+    input object tuples. The input objects in the tuples are from start of the
+    query, not start of this step.
+    """
+
+    connections['lims'].queries = [] # XXX
+    next_obj_src = step_one([obj for obj, src in obj_src], step_f, filters)
+    print connections['lims'].queries # XXX
+
+    keep = []
+    for next_obj, next_src in next_obj_src:
+      # find next_src in original obj_src
+      for obj, src in obj_src:
+        if obj.pk == next_src:
+          keep.append((next_obj, src))
+
+    return list(set(keep))
+
+
+  @staticmethod
+  def _recursive_rel(obj_src, step_f, filters, need_terminal):
+    """
+    Traverse a relationship recursively. Collected objects, either loop
+    terminating objects or loop continuing objects. Returns arrays of output,
+    input object tuples. The input objects in the tuples are from start of the
+    query, not start of this step.
     """
 
     collected = []
-    while len(objects) > 0:
+
+    while len(obj_src) > 0:
       # get objects that can continue, w/ filters
-      next_objects = steps(objects, step_f, filters)
+      next_obj_src = Query._graph_step(obj_src, step_f, filters)
 
       if need_terminal:
         # get all reachable objects, w/o filtering
-        reachable = steps(objects, step_f)
-        for obj in reachable:
-          if obj not in next_objects:
-            if obj not in collected:
-              collected.append(obj)
+        reachable = Query._graph_step(obj_src, step_f)
+        for tup in reachable:
+          if tup not in next_obj_src:
+            if tup not in collected:
+              collected.append(tup)
       else:
-        for obj in next_objects:
-          if obj not in collected:
-            collected.append(obj)
-      objects = next_objects
+        for tup in next_obj_src:
+          if tup not in collected:
+            collected.append(tup)
+
+      obj_src = next_obj_src
 
     return collected
 
 
   @staticmethod
-  def _rel_step(objects, step):
+  def _rel_step(obj_src, step):
     """
-    Traverse a relationship, possibly recursively. Returns next set of objects.
+    Traverse a relationship, possibly recursively. Takes in and returns arrays
+    of output, input object tuples. The input objects in the tuples are from
+    start of the query, not start of this step.
     """
 
     model = step['model']
@@ -100,25 +130,25 @@ class Query(object):
     filters = step['filters']
 
     # check if type matches existing object type
-    if len(objects) and type(objects[0]) != model_registry.getclass(model):
+    if len(obj_src) and type(obj_src[0][0]) != model_registry.getclass(model):
       raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
-                      (model, type(objects[0])))
+                      (model, type(obj_src[0][0])))
 
     step_f = model_registry.getattr(model, method)
 
     if 'recursive' not in step or step['recursive'] is False:
-      objects = steps(objects, step_f, filters)
+      obj_src = Query._graph_step(obj_src, step_f, filters)
 
     else:
       need_terminal = 'collect' in step and step['collect'] == 'terminal'
-      objects = Query._recursive_rel(objects, step_f, filters, need_terminal)
+      obj_src = Query._recursive_rel(obj_src, step_f, filters, need_terminal)
 
-    # print '%s: %d' % (step, len(objects))
-    return objects
+    # print '%s: %d' % (step, len(obj_src))
+    return obj_src
 
 
   @staticmethod
-  def _filter_by_subquery(objects, step):
+  def _filter_by_subquery(obj_src, step):
     """
     Filters existing objects by the subquery.
     """
@@ -126,45 +156,60 @@ class Query(object):
     subquery = step['subquery']
     having = step['having']
 
+    objects = [obj for obj, src in obj_src]
+    subquery_res = Query._query(objects, subquery)
+
     keep = []
-    for object in objects:
-      subquery_objects = Query._query([object], subquery)
-      if (having is True and len(subquery_objects) > 0) or\
-         (having is False and len(subquery_objects) == 0):
-        keep.append(object)
+    for obj, src in obj_src:
+      res = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj]
+      if (having is True and len(res) > 0) or\
+         (having is False and len(res) == 0):
+        keep.append((obj, src))
 
     return keep
 
 
   @staticmethod
-  def _step(objects, step):
+  def _step(obj_src, step):
     """
-    Executes one step from list of objects, return new objects for next step.
+    Executes one step, which can either be a relation, or a subquery filter.
+    Takes in and returns arrays of output, input object tuples.
     """
 
     if 'subquery' in step:
       # print 'subquery %s' % step
-      return Query._filter_by_subquery(objects, step)
+      return Query._filter_by_subquery(obj_src, step)
     else:
       # print 'rel %s' % step
-      return Query._rel_step(objects, step)
+      return Query._rel_step(obj_src, step)
 
 
   @staticmethod
   def _query(objects, query):
     """
     Executes a query. A query is an array whose elements are model
-    relationships or subqueries.
+    relationships or subqueries. Input objects should be an array of model
+    instances. Returns array of tuples; first member of tuple is output object
+    from query, second member of tuple is the pk of the input object that
+    produced the output.
     """
 
+    obj_src = [(obj, obj.pk) for obj in objects]
+
     for step in query:
-      if len(objects) > 0:
-        objects = Query._step(objects, step)
+      if len(obj_src) > 0:
+        obj_src = Query._step(obj_src, step)
       else:
         return []
-    return objects
+    return obj_src
 
 
   def __call__(self):
+    """
+    Executes the current query. Returns array of tuples; first member of tuple
+    is output object from query, second member of tuple is the object from the
+    first step of the query that produced the output object.
+    """
+
     objects = list(self.__get_objects())
     return Query._query(objects, self.__steps)
