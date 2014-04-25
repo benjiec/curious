@@ -95,6 +95,9 @@ function curiousJoinTable(results, set_table_cb, get_object_f) {
     entries = new_entries;
   }
 
+  // sort by first column
+  entries.sort(function(a, b) { return a[0].id-b[0].id; });
+
   // create a dict of objects, add ptr to object from each cell in entries
   // table. this allows sharing of objects if there are duplicates in query
   // results.
