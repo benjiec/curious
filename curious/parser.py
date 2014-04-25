@@ -62,7 +62,9 @@ class ASTBuilder(NodeVisitor):
       w = True
     return dict(subquery=q, having=w)
 
-  def visit_one_query(self, node, (one_rel, recursion)):
+  def visit_one_query(self, node, (join, _1, one_rel, recursion)):
+    if type(join) == list:
+      one_rel['join'] = True
     if type(recursion) == list:
       one_rel['recursive'] = True
       if recursion[0] is True:

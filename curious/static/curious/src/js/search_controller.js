@@ -13,9 +13,8 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
   $scope.query_submitted = [];
 
   if ($routeParams && $routeParams.query) {
-    var q = curiousParseQueryFromRouteParam($routeParams.query);
-    $scope.query = q.main_query;
-    $scope.query_submitted = [q];
+    $scope.query = $routeParams.query;
+    $scope.query_submitted = [$scope.query];
     var i = $scope.recent_queries.indexOf($routeParams.query);
     if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
   }
@@ -44,10 +43,8 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
       });
   };
 
-  // query: curiousQuery object
   $scope._new_query = function(query) {
-    var query_string = curiousQueryToRouteParam(query);
-    var url = '/q/'+encodeURI(query_string);
+    var url = '/q/'+encodeURI(query);
     $location.path(url);
   }
 
@@ -61,14 +58,11 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
 
   $scope.submitQuery = function () {
     $scope.checkQuery(function(query_string, err) {
-      if (query_string !== '') {
-        var url = '/q/'+encodeURI(query_string);
-        $location.path(url);
-      }
+      if (query_string !== '') { $scope._new_query(query_string); }
     });
   };
 
-  $scope.newMainQuery = function(query, model, rel) {
+  $scope.newQuery = function(query, model, rel) {
     $scope.query = query+' '+model+'.'+rel;
     $scope.submitQuery();
   };

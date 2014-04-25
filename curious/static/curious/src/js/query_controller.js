@@ -3,9 +3,9 @@
 function QueryController($scope, $http) {
 
   function init_query() {
-    $scope.search_error = undefined;
     $scope.completed = false;
     $scope.success = false;
+    $scope.search_error = undefined;
     $scope.last_model = undefined;
     $scope.last_model_rels = [];
     $scope.table = undefined;
@@ -48,8 +48,9 @@ function QueryController($scope, $http) {
   function execute() {
     init_query();
 
-    var queries = $scope.query.queryArray();
-    curiousJoinQuery(queries, do_query, function(entries, model_name, err) {
+    var query = $scope.query;
+    console.log(query);
+    do_query(query, function(result, err) {
       $scope.completed = true;
       if (err) {
         $scope.success = false;
@@ -57,18 +58,14 @@ function QueryController($scope, $http) {
       }
       else {
         $scope.success = true;
-        if (entries.length > 0) {
-          // fetch information about the model of the last query, so we can
-          // list recommended relationships.
-          $scope.last_model = model_name;
-          get_model(model_name, function(result, error) {
-            if (result) {
-              if (result.relationships) { $scope.last_model_rels = result.relationships; }
-            }
-          });
-          // create join table
-          curiousJoinTable(queries, entries, function(tbl) { $scope.table = tbl; }, get_object);
-        }
+        $scope.last_model = result.model;
+        get_model($scope.last_model, function(result, error) {
+          if (result) {
+            if (result.relationships) { $scope.last_model_rels = result.relationships; }
+          }
+        });
+        // create join table
+        curiousJoinTable(result, function(tbl) { $scope.table = tbl; }, get_object);
       }
     });
   }
@@ -77,7 +74,5 @@ function QueryController($scope, $http) {
     $scope.csv = $scope.table.csv();
   }
 
-  curiousQueryForm($scope.query, $scope._check_query, $scope._new_query,
-                   function(data) { $scope.query = data; });
   execute();
 };

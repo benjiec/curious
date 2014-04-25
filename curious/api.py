@@ -121,5 +121,5 @@ class QueryView(JSONView):
                             obj[1]) for obj in objects]
               }
 
-    # print results
+    print results
     return self._return(200, results)
