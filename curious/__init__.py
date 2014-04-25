@@ -45,7 +45,7 @@ class ModelRegistry(object):
         else:
           model_name = self.__name_shortcuts[name][0]
       else:
-        raise Exception('Please register model before custom relationship')
+        raise Exception("Don't know about model %s" % name)
     return model_name
 
   def add_custom_rel(self, name, rel):

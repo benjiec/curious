@@ -59,9 +59,12 @@ class ObjectView(JSONView):
           d[f.column] = {
             'model': model_name,
             'id': v.pk,
-            'url': model_registry.geturl(model_name, v),
             '__str__': str(v)
           }
+          try:
+            d[f.column]['url'] = model_registry.geturl(model_name, v)
+          except:
+            pass
     return d
 
   def get(self, request, model_name, id):
@@ -118,5 +121,5 @@ class QueryView(JSONView):
                             obj[1]) for obj in objects]
               }
 
-    print results
+    # print results
     return self._return(200, results)

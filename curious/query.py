@@ -2,8 +2,6 @@ from .parser import Parser
 from curious import model_registry
 from curious.graph import step_one
 
-from django.db import connections
-
 
 class Query(object):
 
@@ -71,9 +69,7 @@ class Query(object):
     query, not start of this step.
     """
 
-    connections['lims'].queries = [] # XXX
     next_obj_src = step_one([obj for obj, src in obj_src], step_f, filters)
-    print connections['lims'].queries # XXX
 
     keep = []
     for next_obj, next_src in next_obj_src:
