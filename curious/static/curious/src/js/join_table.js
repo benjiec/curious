@@ -140,7 +140,7 @@ function curiousJoinTable(results, set_table_cb, get_object_f) {
           var obj = entry.ptr;
           if (obj) {
             var v = obj[tbl_attrs[j]];
-            if (v.display) { v = v.display; }
+            if (v.display) { v = v.value; }
             if (v) {
               v = ''+v;
               // dumb escape logic for csv value - basically gets rid of space and quotes
