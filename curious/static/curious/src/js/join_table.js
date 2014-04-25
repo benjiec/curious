@@ -28,7 +28,7 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
       var entry = entries[i][j];
       var obj_id = entry.model+'.'+entry.id;
       if (objects[obj_id] === undefined) {
-        var id_str = entry.id;
+        var id_str = ''+entry.id;
         if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
         objects[obj_id] = {id: {value: entry.id, display: id_str }};
       }
