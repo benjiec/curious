@@ -6,7 +6,6 @@ from django.http import HttpResponse
 from django.views.generic.base import View
 
 from curious import model_registry
-from .graph import _valid_django_rel
 from .query import Query
 
 
@@ -33,7 +32,7 @@ class ModelView(JSONView):
   def model_to_dict(cls):
     d = dict(model=cls.__name__, relationships=[])
     for f in dir(cls):
-      if _valid_django_rel(getattr(cls, f)) or model_registry.allow_rel(cls, f):
+      if model_registry.is_rel_allowed(cls, f):
         d['relationships'].append(f)
     return d
 

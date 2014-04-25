@@ -20,7 +20,7 @@ class ModelRegistry(object):
         try:
           if issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
             model_name = ModelRegistry.model_name(cls)
-            self.__models[model_name] = [cls, []]
+            self.__models[model_name] = dict(cls=cls, allowed=[], disallowed=[])
             if cls.__name__ not in self.__name_shortcuts:
               self.__name_shortcuts[cls.__name__] = []
             self.__name_shortcuts[cls.__name__].append(model_name)
@@ -29,7 +29,7 @@ class ModelRegistry(object):
     else:
       if model._meta.abstract is False:
         model_name = ModelRegistry.model_name(model)
-        self.__models[model_name] = [model, []]
+        self.__models[model_name] = dict(cls=model, allowed=[], disallowed=[])
         if model.__name__ not in self.__name_shortcuts:
           self.__name_shortcuts[model.__name__] = []
         self.__name_shortcuts[model.__name__].append(model_name)
@@ -50,7 +50,11 @@ class ModelRegistry(object):
 
   def add_custom_rel(self, name, rel):
     model_name = self.translate_name(name)
-    self.__models[model_name][1].append(rel)
+    self.__models[model_name]['allowed'].append(rel)
+
+  def disallow_rel(self, name, rel):
+    model_name = self.translate_name(name)
+    self.__models[model_name]['disallowed'].append(rel)
 
   def add_model_url_func(self, name, f):
     model_name = self.translate_name(name)
@@ -60,13 +64,16 @@ class ModelRegistry(object):
   def model_names(self):
     return [k for k in self.__models]
 
-  def allow_rel(self, cls, f):
+  def is_rel_allowed(self, cls, f):
     model_name = ModelRegistry.model_name(cls)
-    return f in self.__models[model_name][1]
+    if _valid_django_rel(getattr(cls, f)) and\
+       not f in self.__models[model_name]['disallowed']:
+      return True
+    return f in self.__models[model_name]['allowed']
 
   def getclass(self, name):
     model_name = self.translate_name(name)
-    return self.__models[model_name][0]
+    return self.__models[model_name]['cls']
 
   def getname(self, cls):
     try:
@@ -85,8 +92,7 @@ class ModelRegistry(object):
     cls = self.getclass(name)
     if not hasattr(cls, method):
       raise Exception('Unknown attribute "%s" in "%s"' % (method, name))
-    f = getattr(cls, method)
-    if not _valid_django_rel(f) and not self.allow_rel(cls, method):
+    if not self.is_rel_allowed(cls, method):
       raise Exception('Not allowed to call "%s"' % method)
     return f
 
