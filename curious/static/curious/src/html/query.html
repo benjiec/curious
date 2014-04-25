@@ -17,7 +17,7 @@
       <li ng-repeat="rel in last_model_rels">
         <span class="rel-actions">
           <a class="btn btn-xs btn-info" href='javascript:void(0);' title="Extend query"
-             ng-click="newQuery(query, last_model, rel)">Q</a>
+             ng-click="extendQuery(last_model, rel)">Q</a>
         </span>
         <span class="rel-name">{{ rel }}</span>
       </li>

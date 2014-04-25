@@ -62,8 +62,8 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
     });
   };
 
-  $scope.newQuery = function(query, model, rel) {
-    $scope.query = query+' '+model+'.'+rel;
+  $scope.extendQuery = function(model, rel) {
+    $scope.query = $scope.query+' '+model+'.'+rel;
     $scope.submitQuery();
   };
 }
