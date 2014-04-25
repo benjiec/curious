@@ -43,7 +43,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
     else:
       raise Exception("Cannot handle related object descriptor %s." % rel_obj_descriptor)
 
-  def _get_related_objects(instances, filters=None):
+  def get_related_objects(instances, filters=None):
     queryset = None
 
     def apply_filters(q):
@@ -64,31 +64,29 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       table = instances[0]._meta.db_table
       queryset = rel_obj_descriptor.get_prefetch_queryset(instances)[0]\
                                    .extra(select={INPUT_ATTR_PREFIX: '%s.id' % table})
+      queryset._prefetch_done = True
 
     # reverse FK from instance to related objects with FK to the instance
     elif type(rel_obj_descriptor) == ForeignRelatedObjectsDescriptor:
       model = instances[0]._meta.model_name
       queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]\
                                    .extra(select={INPUT_ATTR_PREFIX: '%s_id' % model})
+      queryset._prefetch_done = True
 
     # M2M from instance to related objects
     elif type(rel_obj_descriptor) == ReverseManyRelatedObjectsDescriptor:
       queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
+      queryset._prefetch_done = True
 
     # reverse M2M from instance to related objects
     elif type(rel_obj_descriptor) == ManyRelatedObjectsDescriptor:
       queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
+      queryset._prefetch_done = True
 
     if queryset:
       return apply_filters(queryset)
-    return []
 
-  # turn prefetching OFF
-  def get_related_objects(instances, filters=None):
-    r = _get_related_objects(instances, filters=filters)
-    if type(r) == QuerySet:
-      r._prefetch_done = True
-    return r
+    return []
 
   return get_related_objects
 
