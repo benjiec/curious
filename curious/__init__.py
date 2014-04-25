@@ -94,6 +94,6 @@ class ModelRegistry(object):
       raise Exception('Unknown attribute "%s" in "%s"' % (method, name))
     if not self.is_rel_allowed(cls, method):
       raise Exception('Not allowed to call "%s"' % method)
-    return f
+    return getattr(cls, method)
 
 model_registry = ModelRegistry()
