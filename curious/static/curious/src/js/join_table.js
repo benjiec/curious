@@ -2,15 +2,14 @@
 // exposes a data structure that angular template can easily use to display the
 // objects and their attributes.
 
-function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
+function curiousJoinTable(results, set_table_cb, get_object_f) {
   // Constructor:
-  //   join_queries - array of queries
-  //   entries      - 2-dimensional array of objects, each has model and id
+  //   results      - array of search results, each result has a model and a
+  //                  list of object output input tuples
   //   set_table_cb - callback to set table data structure, should take a hash
   //   get_object_f - function to fetch an object, should take a model and an id
 
-  var join_queries = join_queries;
-  var entries = entries;
+  var entries = [];
   var objects = [];
   var models = [];
 
@@ -19,6 +18,47 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
   var tbl_attrs = [];
   var tbl_rows = [];
   var tbl_csv = undefined;
+
+  // from results, construct entries table - joining results together
+
+  // for each result, build a dict indexed by object id
+  for (var i=0; i<results.length; i++) {
+    results[i].map = {}
+    for (var j=0; j<results[i].objects.length; j++) {
+      var obj = results[i].objects[j];
+      if (results[i].map[obj[0]] === undefined) { results[i].map[obj[0]] = []; }
+      results[i].map[obj[0]].push(obj);
+    }
+  }
+
+  function build_obj(col, res_obj) {
+    return { model: results[col].model,
+             id: res_obj[0],
+             url: res_obj[1],
+             from: res_obj[2] };
+  }
+
+  var entries = [];
+  var last_column = results[results.length-1];
+  for (var i=0; i<last_column.objects.length; i++) {
+    entries.push([build_obj(results.length-1, last_column.objects[i])]);
+  }
+
+  for (var col=results.length-2; col>=0; col--) {
+    var new_entries = [];
+    for (var i=0; i<entries.length; i++) {
+      var row = entries[i];
+      var last_from = row[0].from;
+      // index last_from in current column
+      var objs = results[col].map[last_from];
+      for (var j=0; j<objs.length; j++) {
+        var new_row = row.slice(0);
+        new_row.unshift(build_obj(col, objs[j]));
+        new_entries.push(new_row);
+      }
+    }
+    entries = new_entries;
+  }
 
   // create a dict of objects, add ptr to object from each cell in entries
   // table. this allows sharing of objects if there are duplicates in query
@@ -36,15 +76,9 @@ function curiousJoinTable(join_queries, entries, set_table_cb, get_object_f) {
     }
   }
 
-  // each query has a group of columns, one for each attribute of the query
-  // result model. initially, we only show one column per query, just the
-  // object ID. as we fetch objects, we expand the table.
-  for (var i=0; i<join_queries.length; i++) {
-    tbl_queries.push({query: join_queries[i], cols: 1});
-  }
-
   // remeber each query's model
   for (var j=0; j<entries[0].length; j++) {
+    tbl_queries.push({model: entries[0][j].model, cols: 1});
     models.push({model: entries[0][j].model,
                  attrs: ['id'],
                  loaded: false});

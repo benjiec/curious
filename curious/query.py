@@ -154,6 +154,9 @@ class Query(object):
 
     objects = [obj for obj, src in obj_src]
     subquery_res = Query._query(objects, subquery)
+    if len(subquery_res) > 0:
+      # only care about objects from the last join query
+      subquery_res = subquery_res[-1]
 
     keep = []
     for obj, src in obj_src:
@@ -184,20 +187,29 @@ class Query(object):
   def _query(objects, query):
     """
     Executes a query. A query is an array whose elements are model
-    relationships or subqueries. Input objects should be an array of model
+    relationships or subqueries. 
+    
+    Input objects should be an array of model
     instances. Returns array of tuples; first member of tuple is output object
     from query, second member of tuple is the pk of the input object that
     produced the output.
     """
 
-    obj_src = [(obj, obj.pk) for obj in objects]
+    res = []
 
+    obj_src = [(obj, obj.pk) for obj in objects]
     for step in query:
-      if len(obj_src) > 0:
-        obj_src = Query._step(obj_src, step)
-      else:
+      if len(obj_src) == 0:
         return []
-    return obj_src
+
+      if 'join' in step:
+        res.append(obj_src)
+        obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
+
+      obj_src = Query._step(obj_src, step)
+
+    res.append(obj_src)
+    return res
 
 
   def __call__(self):

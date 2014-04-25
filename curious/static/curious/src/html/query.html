@@ -27,6 +27,13 @@
 
 <table class="table table-condensed table-striped table-bordered table-fixed" ng-if="table.attrs">
   <tr class="success">
+    <td class="wrap" ng-repeat="q in table.queries track by $index" colspan="{{ q.cols }}">
+      <a href="javascript:void(0)" ng-click="table.toggle($index)" title="Click to show/hide attrs"
+       >{{ q.model }}</a>
+    </td>
+  </tr>
+
+  <tr class="success">
     <th class="wrap" ng-repeat="attr in table.attrs track by $index">{{ attr }}</th>
   </tr>
 

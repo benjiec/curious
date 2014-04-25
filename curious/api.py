@@ -99,27 +99,21 @@ class QueryView(JSONView):
       return self._return(200, dict(query=q))
 
     try:
-      objects = query()
+      res = query()
     except Exception as e:
       import traceback
       traceback.print_exc()
       return self._error(400, str(e))
 
-    if len(objects) == 0:
-      results = {}
-      return self._return(200, results)
+    results = []
+    for obj_src in res:
+      model = type(obj_src[0][0])
+      model_name = model_registry.getname(model)
 
-    models = list(set([type(obj[0]) for obj in objects]))
-    if len(models) != 1:
-      raise Exception("List of objects returned non-unique or no model")
-
-    model_name = model_registry.getname(models[0])
-
-    results = {'model': model_name,
-               'objects': [(obj[0].pk,
-                            model_registry.geturl(model_name, obj[0]),
-                            obj[1]) for obj in objects]
-              }
+      d = {'model': model_name,
+           'objects': [(obj.pk, model_registry.geturl(model_name, obj), src) for obj, src in obj_src]
+          }
+      results.append(d)
 
     print results
     return self._return(200, results)
