@@ -2,12 +2,12 @@
 // exposes a data structure that angular template can easily use to display the
 // objects and their attributes.
 
-function curiousJoinTable(results, set_table_cb, get_object_f) {
+function curiousJoinTable(results, set_table_cb, get_objects_f) {
   // Constructor:
-  //   results      - array of search results, each result has a model and a
+  //   results       - array of search results, each result has a model and a
   //                  list of object output input tuples
-  //   set_table_cb - callback to set table data structure, should take a hash
-  //   get_object_f - function to fetch an object, should take a model and an id
+  //   set_table_cb  - callback to set table data structure, should take a hash
+  //   get_objects_f - function to fetch objects in batch, should take a model and an ids list
 
   var entries = [];
   var objects = [];
@@ -88,6 +88,7 @@ function curiousJoinTable(results, set_table_cb, get_object_f) {
   }
 
   // fetching object from server or cache
+  // XXX switch to using get_objects_f
   function get_object(model, id, cb) {
     var obj_id = model+'.'+id;
     if (obj_id in objects && objects[obj_id]['__fetched__']) {
@@ -229,6 +230,7 @@ function curiousJoinTable(results, set_table_cb, get_object_f) {
       // already loaded, just use one fetched object to expand the attributes
       // list.
       obj = entries[0][query_idx];
+      // XXX switch to using get_objects syntax
       get_object(obj.model, obj.id, function(obj_data) {
         update_model_attrs(query_idx, obj_data);
       });
@@ -236,6 +238,7 @@ function curiousJoinTable(results, set_table_cb, get_object_f) {
     }
 
     // fetch every object from server
+    // XXX switch to using get_objects_f
     for (var i=0; i<entries.length; i++) {
       var obj = entries[i][query_idx];
       // console.log('fetch '+obj.model+'.'+obj.id);

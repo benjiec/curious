@@ -43,6 +43,28 @@ class ModelView(JSONView):
       return self._error(404, "Unknown model '%s': %s" % (model_name, str(e)))
     return self._return(200, ModelView.model_to_dict(cls))
 
+  def post(self, request, model_name):
+    """
+    Fetch objects in batch.
+    """
+
+    if 'ids' not in request.POST:
+      return self._error(400, "Missing ids array")
+
+    try:
+      cls = model_registry.getclass(model_name)
+    except:
+      return self._error(404, "Unknown model '%s'" % model_name)
+
+    r = []
+    for id in request.POST['ids']:
+      try:
+        obj = cls.objects.get(pk=id)
+      except:
+        r.append(ObjectView.object_to_dict(obj))
+
+    return self._return(200, r)
+
 
 class ObjectView(JSONView):
 
