@@ -224,7 +224,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
             s = v['__str__'];
             if (v.id) { s += ' ('+v.id+')'; }
           }
-          if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+          if ('url' in v && v.url) { s = '<a href="'+v.url+'">'+s+'</a>'; }
         }
         ptr[a] = {value: v, display: s};
       }
