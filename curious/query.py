@@ -98,17 +98,28 @@ class Query(object):
     collected = []
 
     while len(obj_src) > 0:
-      # get objects that can continue, w/ filters
       next_obj_src = Query._graph_step(obj_src, step_f, filters)
 
-      if need_terminal:
+      if need_terminal and (filters is None or filters == {}):
+        # traverse one step from last set of nodes
+        src = [(t[0], t[0].pk) for t in obj_src]
+        progressed = Query._graph_step(src, step_f, filters)
+        progressed = [t[1] for t in progressed]
+        for tup in obj_src:
+          # if we didn't progress, than collect
+          if tup[0].pk not in progressed:
+            if tup not in collected:
+              collected.append(tup)
+
+      elif need_terminal:
         # get all reachable objects, w/o filtering
-        reachable = Query._graph_step(obj_src, step_f)
+        reachable = Query._graph_step(src, step_f, None)
         for tup in reachable:
           if tup not in next_obj_src:
             if tup not in collected:
               collected.append(tup)
-      else:
+
+      else: # need all intermediate
         for tup in next_obj_src:
           if tup not in collected:
             collected.append(tup)
