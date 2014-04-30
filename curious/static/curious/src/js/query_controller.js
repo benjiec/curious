@@ -9,7 +9,7 @@ function QueryController($scope, $http) {
     $scope.last_model = undefined;
     $scope.last_model_rels = [];
     $scope.table = undefined;
-    $scope.csv = undefined;
+    $scope.csv = false;
   }
 
   function get_model(model, cb) {
@@ -78,9 +78,13 @@ function QueryController($scope, $http) {
     });
   }
 
-  $scope.showCSV = function() {
-    $scope.csv = $scope.table.csv();
-  }
+  $scope.toggleCSV = function() {
+    if ($scope.csv) { $scope.csv = false; }
+    else {
+      if (!$scope.table.csv) { $scope.table.showCSV(); }
+      $scope.csv = true;
+    }
+  };
 
   execute();
 };

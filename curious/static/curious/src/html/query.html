@@ -10,20 +10,25 @@
 <div ng-if="completed && success && last_model">
 
 <div id="results-header">
-  <span class="page-summary">
-    {{ table.view.current_page*table.view.page_size+1 }}-{{ table.view.current_page*table.view.page_size+table.view.getCurrentItems().length }}/{{ table.length }}
-    row(s) of <b>{{ last_model }}</b>
-  </span>
-  <span class="paging paging-prev">
-    <a href="javascript:void(0);"
-       ng-click="table.prevPage()"
-       ng-if="table.view.current_page > 0">Prev</a>
-  </span>
-  <span class="paging paging-next">
-    <a href="javascript:void(0);"
-       ng-click="table.nextPage()"
-       ng-if="table.view.current_page*table.view.page_size+table.view.page_size < table.length">Next</a>
-  </span>
+  <div ng-if="!csv">
+    <span class="page-summary">
+      {{ table.view.current_page*table.view.page_size+1 }}-{{ table.view.current_page*table.view.page_size+table.view.getCurrentItems().length }}/{{ table.length }}
+      row(s) of <b>{{ last_model }}</b>
+    </span>
+    <span>
+      <a href="javascript:void(0);"
+         ng-click="table.prevPage()"
+         ng-if="table.view.current_page > 0">Prev</a>
+      <a href="javascript:void(0);"
+         ng-click="table.nextPage()"
+         ng-if="table.view.current_page*table.view.page_size+table.view.page_size < table.length">Next</a>
+      <a href="javascript:void(0)" ng-click="toggleCSV()">CSV</a>
+    </span>
+  </div>
+  <div ng-if="csv">
+    <a href="javascript:void(0)" ng-click="toggleCSV()">Table</a>
+  </div>
+
   <div id="recommended_rels" class="dropdown navbar-right">
     <a data-toggle="dropdown" href="javascript:void(0);">Relations from {{ last_model }}</a>
     <ul class="rel-list dropdown-menu" role="menu">
@@ -38,7 +43,7 @@
   </div> <!-- recommended_rels -->
 </div>
 
-<table class="table table-condensed table-striped table-bordered table-fixed" ng-if="table.attrs">
+<table class="table table-condensed table-striped table-bordered table-fixed" ng-if="table.attrs && !csv">
   <tr class="success">
     <td class="id"></td>
     <td class="wrap" ng-repeat="q in table.queries track by $index" colspan="{{ q.cols }}">
@@ -60,9 +65,6 @@
   </tr>
 </table>
 
-<p ng-if="!table.csv">
-  <a href="javascript:void(0)" ng-click="table.showCSV()">Show CSV</a>
-</p>
-<textarea class="csv" ng-if="table.csv" readonly>{{ table.csv }}</textarea>
+<textarea class="csv" ng-if="csv" readonly>{{ table.csv }}</textarea>
 
 </div> <!-- if for results table -->
