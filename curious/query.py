@@ -13,6 +13,11 @@ class Query(object):
     self.__validate()
 
 
+  @property
+  def query_string(self):
+    return self.__query
+
+
   @staticmethod
   def _validate(query):
     """

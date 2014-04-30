@@ -1,5 +1,6 @@
 import json
 import types
+from django.core.cache import cache
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignKey
 from django.http import HttpResponse
@@ -7,7 +8,7 @@ from django.views.generic.base import View
 
 from curious import model_registry
 from .query import Query
-from .profile import report_time
+from .utils import report_time
 
 
 class JSONView(View):
@@ -104,6 +105,26 @@ class ObjectView(JSONView):
 
 class QueryView(JSONView):
 
+  def get_query_results(self, query, force):
+    k = hash(query.query_string)
+    v = cache.get(k)
+    if v is None or force:
+      v = self.run_query(query)
+      cache.set(k, v)
+    return v
+
+  def run_query(self, query):
+    res = query()
+    results = []
+    for obj_src in res:
+      model = type(obj_src[0][0])
+      model_name = model_registry.getname(model)
+      d = {'model': model_name,
+           'objects': [(obj.pk, model_registry.geturl(model_name, obj), src) for obj, src in obj_src]
+          }
+      results.append(d)
+    return results
+
   @report_time
   def get(self, request):
     if 'q' not in request.GET:
@@ -123,21 +144,11 @@ class QueryView(JSONView):
       return self._return(200, dict(query=q))
 
     try:
-      res = query()
+      results = self.get_query_results(query, 'r' in request.GET)
     except Exception as e:
       import traceback
       traceback.print_exc()
       return self._error(400, str(e))
-
-    results = []
-    for obj_src in res:
-      model = type(obj_src[0][0])
-      model_name = model_registry.getname(model)
-
-      d = {'model': model_name,
-           'objects': [(obj.pk, model_registry.geturl(model_name, obj), src) for obj, src in obj_src]
-          }
-      results.append(d)
 
     # print results
     return self._return(200, results)

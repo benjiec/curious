@@ -473,7 +473,7 @@ function QueryController($scope, $http) {
 
   function do_query(query_string, cb) {
     var url = $scope.__base_url+'/q/';
-    var url = url+'?q='+encodeURIComponent(query_string);
+    var url = url+'?r=1&q='+encodeURIComponent(query_string);
     $http.get(url)
       .success(function(data) {
         if (data.result) { cb(data.result, undefined); }
