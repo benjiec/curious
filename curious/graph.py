@@ -62,17 +62,20 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
     # FK from instance to a related object
     elif type(rel_obj_descriptor) == ReverseSingleRelatedObjectDescriptor:
       table = instances[0]._meta.db_table
-      if table == rel_obj_descriptor.field.model._meta.db_table:
+      related_table = rel_obj_descriptor.field.related_field.model._meta.db_table
+      #print 'starting with %s, related %s' % (table, related_table)
+      if table == related_table:
         # XXX hack: assuming django uses T2 for joining two tables of same name
         table = 'T2'
       queryset = rel_obj_descriptor.get_prefetch_queryset(instances)[0]\
                                    .extra(select={INPUT_ATTR_PREFIX: '%s.id' % table})
-      print queryset.query
+      #print queryset.query
       queryset._prefetch_done = True
 
     # reverse FK from instance to related objects with FK to the instance
     elif type(rel_obj_descriptor) == ForeignRelatedObjectsDescriptor:
       column = rel_obj_descriptor.related.field.column
+      table = instances[0]._meta.db_table
       queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]\
                                    .extra(select={INPUT_ATTR_PREFIX: '%s' % column})
       queryset._prefetch_done = True
