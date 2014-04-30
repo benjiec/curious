@@ -10,6 +10,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   //   get_objects_f - function to fetch objects in batch, should take a model and an ids list
 
   var GET_BATCH = 500;  // how many objects to fetch from server at a time
+  var DEFAULT_PAGE_SIZE = 100;
 
   var entries = [];
   var objects = [];
@@ -19,6 +20,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   var tbl_queries = [];
   var tbl_attrs = [];
   var tbl_rows = [];
+  var tbl_view = undefined;
   var tbl_csv = undefined;
 
   // from results, construct entries table - joining results together
@@ -195,6 +197,23 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     return csv_rows.join('\n');
   }
 
+  function update_pourover(page_size) {
+    var col_data = [];
+    for (var i=0; i<tbl_rows.length; i++) {
+      col_data.push({i: i, row: tbl_rows[i]});
+    }
+    var collection = new PourOver.Collection(col_data);
+    if (page_size === undefined) { page_size = DEFAULT_PAGE_SIZE; }
+    tbl_view = new PourOver.View('default', collection, {page_size: page_size});
+  }
+
+  function next_page() { tbl_view.page(1); }
+  function prev_page() { tbl_view.page(-1); }
+
+  function update_csv() {
+    if (tbl_csv) { tbl_csv = csv(); }
+  }
+
   // update table data structure after receiving new attrs for unfetched
   // objects in the table.
   function update_table() {
@@ -208,7 +227,6 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     }
     // console.log(tbl_attrs);
 
-    // XXX work with pourover!
     tbl_rows = [];
     for (var i=0; i<entries.length; i++) {
       var row = [];
@@ -220,19 +238,24 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     }
     // console.log(tbl_rows);
 
-    if (tbl_csv) { tbl_csv = csv(); }
-    update_controller();
+    update_pourover(); // use PourOver for paging
+    update_csv(); // update CSV if user had requested it
+    update_controller(); // update controller that our table has expanded
   }
 
   function update_controller() {
     // tell angular to re-render
     set_table_cb({
-      toggle: toggle,
-      showCSV: showCSV,
-      csv: tbl_csv,
       queries: tbl_queries,
       attrs: tbl_attrs,
-      rows: tbl_rows
+      length: tbl_rows.length,
+      view: tbl_view,
+      csv: tbl_csv,
+      // actions
+      toggleQuery: toggle,
+      showCSV: show_csv,
+      nextPage: next_page,
+      prevPage: prev_page
     });
   }
 
@@ -292,7 +315,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     else { hide_object_attrs(query_idx); }
   }
 
-  function showCSV() {
+  function show_csv() {
     tbl_csv = csv();
     update_controller();
   }
