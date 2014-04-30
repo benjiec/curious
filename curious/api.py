@@ -48,7 +48,12 @@ class ModelView(JSONView):
     Fetch objects in batch.
     """
 
-    if 'ids' not in request.POST:
+    try:
+      data = json.loads(request.body)
+    except:
+      return self._error(400, "Bad data")
+
+    if 'ids' not in data:
       return self._error(400, "Missing ids array")
 
     try:
@@ -57,10 +62,12 @@ class ModelView(JSONView):
       return self._error(404, "Unknown model '%s'" % model_name)
 
     r = []
-    for id in request.POST['ids']:
+    for id in data['ids']:
       try:
         obj = cls.objects.get(pk=id)
       except:
+        return self._error(404, "Cannot find instance '%s' on '%s'" % (id, model_name))
+      else:
         r.append(ObjectView.object_to_dict(obj))
 
     return self._return(200, r)

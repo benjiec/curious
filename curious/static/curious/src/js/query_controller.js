@@ -32,7 +32,7 @@ function QueryController($scope, $http) {
   }
 
   function get_objects(model, ids, cb) {
-    var url = $scope.__base_url+'/model/'+model+'/;
+    var url = $scope.__base_url+'/models/'+model+'/';
     $http.post(url, {ids: ids}).success(function(data) {
       if (data.result) { cb(data.result); }
     });

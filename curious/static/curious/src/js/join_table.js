@@ -87,38 +87,54 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
                  loaded: false});
   }
 
-  // fetching object from server or cache
-  // XXX switch to using get_objects_f
-  function get_object(model, id, cb) {
-    var obj_id = model+'.'+id;
-    if (obj_id in objects && objects[obj_id]['__fetched__']) {
-      cb(objects[obj_id]['__fetched__']);
-      return;
-    }
-
-    get_object_f(model, id, function(obj_data) {
-      var ptr = objects[obj_id];
-      ptr['__fetched__'] = obj_data;
-      for (var a in obj_data) {
-        // already has id field with link, don't overwrite that
-        if (a !== 'id') {
-          // for each field, we have a value, and a display value that is shown
-          // to the user.
-          var v = obj_data[a];
-          var s = v;
-          if (v && v.model) {
-            if ('__str__' in v) {
-              s = v['__str__'];
-              if (v.id) { s += ' ('+v.id+')'; }
-            }
-            if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
-          }
-          ptr[a] = {value: v, display: s};
-        }
+  // fetching objects from server or cache. calls callback with one arbitrary
+  // object's data.
+  function get_objects(model, ids, cb) {
+    var cb_data = undefined;
+    var unfetched = [];
+    for (var i=0; i<ids.length; i++) {
+      var id = ids[i];
+      var obj_id = model+'.'+id;
+      if (obj_id in objects && objects[obj_id]['__fetched__']) {
+        cb_data = objects[obj_id]['__fetched__'];
       }
-      // console.log(ptr);
-      if (cb) { cb(obj_data); }
-    });
+      else { unfetched.push(id); }
+    }
+    if (cb_data !== undefined && cb) { cb(cb_data); }
+
+    if (unfetched.length > 0) {
+      get_objects_f(model, unfetched, function(results) {
+        for (var i=0; i<results.length; i++) {
+          var id = results[i].id;
+          var obj_data = results[i];
+          var obj_id = model+'.'+id;
+          var ptr = objects[obj_id];
+          ptr['__fetched__'] = obj_data;
+          for (var a in obj_data) {
+            // already has id field with link, don't overwrite that
+            if (a !== 'id') {
+              // for each field, we have a value, and a display value that is shown
+              // to the user.
+              var v = obj_data[a];
+              var s = v;
+              if (v && v.model) {
+                if ('__str__' in v) {
+                  s = v['__str__'];
+                  if (v.id) { s += ' ('+v.id+')'; }
+                }
+                if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+              }
+              ptr[a] = {value: v, display: s};
+            }
+          }
+          // console.log(ptr);
+          if (cb_data === undefined && cb) {
+            cb_data = obj_data;
+            cb(obj_data);
+          }
+        }
+      });
+    }
   }
 
   function csv() {
@@ -230,22 +246,23 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
       // already loaded, just use one fetched object to expand the attributes
       // list.
       obj = entries[0][query_idx];
-      // XXX switch to using get_objects syntax
-      get_object(obj.model, obj.id, function(obj_data) {
-        update_model_attrs(query_idx, obj_data);
+      get_objects(obj.model, [obj.id], function(data) {
+        update_model_attrs(query_idx, data);
       });
       return;
     }
 
     // fetch every object from server
-    // XXX switch to using get_objects_f
+    var ids = [];
     for (var i=0; i<entries.length; i++) {
-      var obj = entries[i][query_idx];
-      // console.log('fetch '+obj.model+'.'+obj.id);
-      get_object(obj.model, obj.id, function(obj_data) {
-        update_model_attrs(query_idx, obj_data);
-      });
+      var entry = entries[i][query_idx];
+      ids.push(entry.ptr.id.value);
+      // console.log('will fetch '+entry.ptr.id.value);
     }
+
+    get_objects(models[query_idx].model, ids, function(data) {
+      update_model_attrs(query_idx, data);
+    });
     models[query_idx].loaded = true;
   }
 
