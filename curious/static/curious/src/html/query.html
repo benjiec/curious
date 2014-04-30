@@ -19,9 +19,11 @@
       <a href="javascript:void(0);"
          ng-click="table.prevPage()"
          ng-if="table.view.current_page > 0">Prev</a>
+      &nbsp;
       <a href="javascript:void(0);"
          ng-click="table.nextPage()"
          ng-if="table.view.current_page*table.view.page_size+table.view.page_size < table.length">Next</a>
+      &nbsp;
       <a href="javascript:void(0)" ng-click="toggleCSV()">CSV</a>
     </span>
   </div>
