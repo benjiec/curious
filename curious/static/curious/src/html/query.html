@@ -34,12 +34,12 @@
   </tr>
 
   <tr class="success">
-    <th class="wrap" ng-repeat="attr in table.attrs track by $index">{{ attr }}</th>
+    <th class="wrap" ng-repeat="attr in table.attrs track by $index" ng-if="attr.visible">{{ attr.name }}</th>
   </tr>
 
   <tr ng-repeat="row in table.rows track by $index">
-    <td class="wrap" ng-repeat="object in row track by $index">
-      <span ng-bind-html="object.ptr[table.attrs[$index]]|showAttr"></span>
+    <td class="wrap" ng-repeat="object in row track by $index" ng-if="table.attrs[$index].visible">
+      <span ng-bind-html="object.ptr[table.attrs[$index].name]|showAttr"></span>
     </td>
   </tr>
 </table>

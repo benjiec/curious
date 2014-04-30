@@ -1,6 +1,6 @@
-// A JoinTable manages objects returned by a set of join queries. JoinTable
-// exposes a data structure that angular template can easily use to display the
-// objects and their attributes.
+// A JoinTable manages objects returned by a query. JoinTable exposes a data
+// structure that angular template can easily use to display the objects and
+// their attributes.
 
 function curiousJoinTable(results, set_table_cb, get_objects_f) {
   // Constructor:
@@ -85,7 +85,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   for (var j=0; j<entries[0].length; j++) {
     tbl_queries.push({model: entries[0][j].model, cols: 1});
     models.push({model: entries[0][j].model,
-                 attrs: ['id'],
+                 attrs: [{name: 'id', visible: true}],
                  loaded: false});
   }
 
@@ -155,7 +155,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     var header = [];
     for (var i=0; i<tbl_attrs.length; i++) {
       var model = row0[i].model;
-      header.push(model+'.'+tbl_attrs[i]);
+      header.push(model+'.'+tbl_attrs[i].name);
     }
     csv_rows.push(header.join(','));
 
@@ -166,7 +166,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
         if (entry) {
           var obj = entry.ptr;
           if (obj) {
-            var v = obj[tbl_attrs[j]];
+            var v = obj[tbl_attrs[j].name];
             if (v.display) { v = v.value; }
             if (v) {
               v = ''+v;
@@ -180,12 +180,12 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
             row.push(v);
           }
           else {
-            if (tbl_attrs[j] == 'id') { row.push(entry.id); }
+            if (tbl_attrs[j].name == 'id') { row.push(entry.id); }
             else { row.push(''); }
           }
         }
         else {
-          if (tbl_attrs[j] == 'id') { row.push(entry.id); }
+          if (tbl_attrs[j].name == 'id') { row.push(entry.id); }
           else { row.push(''); }
         }
       }
@@ -195,9 +195,8 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     return csv_rows.join('\n');
   }
 
-  // update table data structure after a model's attributes list has changed.
-  // the attributes list can change if user wants to show or hide a model's
-  // attributes.
+  // update table data structure after receiving new attrs for unfetched
+  // objects in the table.
   function update_table() {
     tbl_attrs = [];
     var attr_model_idx = [];
@@ -209,6 +208,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     }
     // console.log(tbl_attrs);
 
+    // XXX work with pourover!
     tbl_rows = [];
     for (var i=0; i<entries.length; i++) {
       var row = [];
@@ -240,12 +240,14 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   // model attributes list.
   function update_model_attrs(query_idx, object) {
     if (models[query_idx].attrs.length == 1) {
+      var old_attr = models[query_idx].attrs[0];
       var attrs = [];
-      for (var a in object) { if (a !== 'id') { attrs.push(a); } }
-      attrs.sort();
-      attrs.unshift('id');
+      for (var a in object) { if (a !== 'id') { attrs.push({name: a, visible: true}); } }
+      attrs.sort(function(a, b) { return a.name-b.name; });
+      attrs.unshift(old_attr);
       models[query_idx].attrs = attrs;
       tbl_queries[query_idx].cols = attrs.length;
+
       update_table();
     }
   }
@@ -253,38 +255,40 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   // show attributes for a query's objects
   function show_object_attrs(query_idx) {
     if (models[query_idx].loaded == true) {
-      // already loaded, just use one fetched object to expand the attributes
-      // list.
-      obj = entries[0][query_idx];
-      get_objects(obj.model, [obj.id], function(data) {
-        update_model_attrs(query_idx, data);
-      });
+      // already loaded, mark attrs as visible
+      for (var i=0; i<models[query_idx].attrs.length; i++) {
+        models[query_idx].attrs[i].visible = true;
+      }
+      tbl_queries[query_idx].cols = models[query_idx].attrs.length;
       return;
     }
 
-    // fetch every object from server
+    // fetch objects from server
     var ids = [];
     for (var i=0; i<entries.length; i++) {
       var entry = entries[i][query_idx];
       ids.push(entry.ptr.id.value);
       // console.log('will fetch '+entry.ptr.id.value);
     }
-
     get_objects(models[query_idx].model, ids, function(data) {
       update_model_attrs(query_idx, data);
+      models[query_idx].loaded = true;
     });
-    models[query_idx].loaded = true;
   }
 
   // hide attributes for a query's objects
   function hide_object_attrs(query_idx) {
-    models[query_idx].attrs = ['id'];
+    // mark attrs as invisible, leaving only the 'id' attr
+    for (var i=0; i<models[query_idx].attrs.length; i++) {
+      if (models[query_idx].attrs[i].name !== 'id') {
+        models[query_idx].attrs[i].visible = false;
+      }
+    }
     tbl_queries[query_idx].cols = 1;
-    update_table();
   }
 
   function toggle(query_idx) {
-    if (models[query_idx].attrs.length == 1) { show_object_attrs(query_idx); }
+    if (tbl_queries[query_idx].cols == 1) { show_object_attrs(query_idx); }
     else { hide_object_attrs(query_idx); }
   }
 
