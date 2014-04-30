@@ -1,3 +1,73 @@
+'use strict';
+
+function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
+  $scope.__base_url = '/curious';
+
+  $scope.query = '';
+  $scope.query_error = '';
+  $scope.query_accepted = '';
+
+  $scope.delayPromise = undefined;
+  $scope.recent_queries = RecentQueries;
+
+  $scope.query_submitted = [];
+
+  if ($routeParams && $routeParams.query) {
+    $scope.query = $routeParams.query;
+    $scope.query_submitted = [$scope.query];
+    var i = $scope.recent_queries.indexOf($routeParams.query);
+    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
+  }
+
+  $scope.delayCheckQuery = function() {
+    if ($scope.delayPromise !== undefined) {
+      $timeout.cancel($scope.delayPromise);
+      $scope.delayPromise = undefined;
+    }
+    $scope.delayPromise = $timeout(function() {
+      $scope.checkQuery();
+      $scope.delayPromise = undefined;
+    }, 1000);
+  };
+
+  $scope._check_query = function(query_string, cb) {
+    var url = $scope.__base_url+'/q/';
+    var url = url+'?c=1&q='+encodeURIComponent(query_string);
+    $http.get(url)
+      .success(function(data) { cb(data.result.query, ''); })
+      .error(function(data, status, headers, config) {
+        var err = '';
+        if (data.error) { err = data.error.message; }
+        else { err = 'Unspecified error'; }
+        cb('', err);
+      });
+  };
+
+  $scope._new_query = function(query) {
+    var url = '/q/'+encodeURI(query);
+    $location.path(url);
+  }
+
+  $scope.checkQuery = function(cb) {
+    $scope._check_query($scope.query, function(query_string, err) {
+      $scope.query_error = err;
+      $scope.query_accepted = query_string;
+      if (cb !== undefined) { cb(query_string, err); }
+    });
+  };
+
+  $scope.submitQuery = function () {
+    $scope.checkQuery(function(query_string, err) {
+      if (query_string !== '') { $scope._new_query(query_string); }
+    });
+  };
+
+  $scope.extendQuery = function(model, rel) {
+    $scope.query = $scope.query+' '+model+'.'+rel;
+    $scope.submitQuery();
+  };
+}
+
 var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
@@ -43,6 +113,8 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   //                  list of object output input tuples
   //   set_table_cb  - callback to set table data structure, should take a hash
   //   get_objects_f - function to fetch objects in batch, should take a model and an ids list
+
+  var GET_BATCH = 500;  // how many objects to fetch from server at a time
 
   var entries = [];
   var objects = [];
@@ -122,6 +194,31 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
                  loaded: false});
   }
 
+  // add object data to cache
+  function add_object_data(model, obj_data) {
+    var id = obj_data.id;
+    var obj_id = model+'.'+id;
+    var ptr = objects[obj_id];
+    ptr['__fetched__'] = obj_data;
+    for (var a in obj_data) {
+      // already has id field with link, don't overwrite that
+      if (a !== 'id') {
+        // for each field, we have a value, and a display value that is shown
+        // to the user.
+        var v = obj_data[a];
+        var s = v;
+        if (v && v.model) {
+          if ('__str__' in v) {
+            s = v['__str__'];
+            if (v.id) { s += ' ('+v.id+')'; }
+          }
+          if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+        }
+        ptr[a] = {value: v, display: s};
+      }
+    }
+  }
+
   // fetching objects from server or cache. calls callback with one arbitrary
   // object's data.
   function get_objects(model, ids, cb) {
@@ -138,37 +235,20 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     if (cb_data !== undefined && cb) { cb(cb_data); }
 
     if (unfetched.length > 0) {
-      get_objects_f(model, unfetched, function(results) {
-        for (var i=0; i<results.length; i++) {
-          var id = results[i].id;
-          var obj_data = results[i];
-          var obj_id = model+'.'+id;
-          var ptr = objects[obj_id];
-          ptr['__fetched__'] = obj_data;
-          for (var a in obj_data) {
-            // already has id field with link, don't overwrite that
-            if (a !== 'id') {
-              // for each field, we have a value, and a display value that is shown
-              // to the user.
-              var v = obj_data[a];
-              var s = v;
-              if (v && v.model) {
-                if ('__str__' in v) {
-                  s = v['__str__'];
-                  if (v.id) { s += ' ('+v.id+')'; }
-                }
-                if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
-              }
-              ptr[a] = {value: v, display: s};
+      while (unfetched.length > 0) {
+        var tofetch = unfetched.slice(0, GET_BATCH);
+        var unfetched = unfetched.slice(GET_BATCH);
+        get_objects_f(model, tofetch, function(results) {
+          for (var i=0; i<results.length; i++) {
+            var obj_data = results[i];
+            add_object_data(model, obj_data);
+            if (cb_data === undefined && cb) {
+              cb_data = obj_data;
+              cb(obj_data);
             }
           }
-          // console.log(ptr);
-          if (cb_data === undefined && cb) {
-            cb_data = obj_data;
-            cb(obj_data);
-          }
-        }
-      });
+        });
+      }
     }
   }
 
@@ -292,7 +372,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     for (var i=0; i<entries.length; i++) {
       var entry = entries[i][query_idx];
       ids.push(entry.ptr.id.value);
-      console.log('will fetch '+entry.ptr.id.value);
+      // console.log('will fetch '+entry.ptr.id.value);
     }
 
     get_objects(models[query_idx].model, ids, function(data) {
@@ -410,73 +490,3 @@ function QueryController($scope, $http) {
 
   execute();
 };
-
-'use strict';
-
-function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
-  $scope.__base_url = '/curious';
-
-  $scope.query = '';
-  $scope.query_error = '';
-  $scope.query_accepted = '';
-
-  $scope.delayPromise = undefined;
-  $scope.recent_queries = RecentQueries;
-
-  $scope.query_submitted = [];
-
-  if ($routeParams && $routeParams.query) {
-    $scope.query = $routeParams.query;
-    $scope.query_submitted = [$scope.query];
-    var i = $scope.recent_queries.indexOf($routeParams.query);
-    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
-  }
-
-  $scope.delayCheckQuery = function() {
-    if ($scope.delayPromise !== undefined) {
-      $timeout.cancel($scope.delayPromise);
-      $scope.delayPromise = undefined;
-    }
-    $scope.delayPromise = $timeout(function() {
-      $scope.checkQuery();
-      $scope.delayPromise = undefined;
-    }, 1000);
-  };
-
-  $scope._check_query = function(query_string, cb) {
-    var url = $scope.__base_url+'/q/';
-    var url = url+'?c=1&q='+encodeURIComponent(query_string);
-    $http.get(url)
-      .success(function(data) { cb(data.result.query, ''); })
-      .error(function(data, status, headers, config) {
-        var err = '';
-        if (data.error) { err = data.error.message; }
-        else { err = 'Unspecified error'; }
-        cb('', err);
-      });
-  };
-
-  $scope._new_query = function(query) {
-    var url = '/q/'+encodeURI(query);
-    $location.path(url);
-  }
-
-  $scope.checkQuery = function(cb) {
-    $scope._check_query($scope.query, function(query_string, err) {
-      $scope.query_error = err;
-      $scope.query_accepted = query_string;
-      if (cb !== undefined) { cb(query_string, err); }
-    });
-  };
-
-  $scope.submitQuery = function () {
-    $scope.checkQuery(function(query_string, err) {
-      if (query_string !== '') { $scope._new_query(query_string); }
-    });
-  };
-
-  $scope.extendQuery = function(model, rel) {
-    $scope.query = $scope.query+' '+model+'.'+rel;
-    $scope.submitQuery();
-  };
-}

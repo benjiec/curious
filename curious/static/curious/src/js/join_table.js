@@ -9,6 +9,8 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   //   set_table_cb  - callback to set table data structure, should take a hash
   //   get_objects_f - function to fetch objects in batch, should take a model and an ids list
 
+  var GET_BATCH = 500;  // how many objects to fetch from server at a time
+
   var entries = [];
   var objects = [];
   var models = [];
@@ -87,6 +89,31 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
                  loaded: false});
   }
 
+  // add object data to cache
+  function add_object_data(model, obj_data) {
+    var id = obj_data.id;
+    var obj_id = model+'.'+id;
+    var ptr = objects[obj_id];
+    ptr['__fetched__'] = obj_data;
+    for (var a in obj_data) {
+      // already has id field with link, don't overwrite that
+      if (a !== 'id') {
+        // for each field, we have a value, and a display value that is shown
+        // to the user.
+        var v = obj_data[a];
+        var s = v;
+        if (v && v.model) {
+          if ('__str__' in v) {
+            s = v['__str__'];
+            if (v.id) { s += ' ('+v.id+')'; }
+          }
+          if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+        }
+        ptr[a] = {value: v, display: s};
+      }
+    }
+  }
+
   // fetching objects from server or cache. calls callback with one arbitrary
   // object's data.
   function get_objects(model, ids, cb) {
@@ -103,37 +130,20 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     if (cb_data !== undefined && cb) { cb(cb_data); }
 
     if (unfetched.length > 0) {
-      get_objects_f(model, unfetched, function(results) {
-        for (var i=0; i<results.length; i++) {
-          var id = results[i].id;
-          var obj_data = results[i];
-          var obj_id = model+'.'+id;
-          var ptr = objects[obj_id];
-          ptr['__fetched__'] = obj_data;
-          for (var a in obj_data) {
-            // already has id field with link, don't overwrite that
-            if (a !== 'id') {
-              // for each field, we have a value, and a display value that is shown
-              // to the user.
-              var v = obj_data[a];
-              var s = v;
-              if (v && v.model) {
-                if ('__str__' in v) {
-                  s = v['__str__'];
-                  if (v.id) { s += ' ('+v.id+')'; }
-                }
-                if ('url' in v) { s = '<a href="'+v.url+'">'+s+'</a>'; }
-              }
-              ptr[a] = {value: v, display: s};
+      while (unfetched.length > 0) {
+        var tofetch = unfetched.slice(0, GET_BATCH);
+        var unfetched = unfetched.slice(GET_BATCH);
+        get_objects_f(model, tofetch, function(results) {
+          for (var i=0; i<results.length; i++) {
+            var obj_data = results[i];
+            add_object_data(model, obj_data);
+            if (cb_data === undefined && cb) {
+              cb_data = obj_data;
+              cb(obj_data);
             }
           }
-          // console.log(ptr);
-          if (cb_data === undefined && cb) {
-            cb_data = obj_data;
-            cb(obj_data);
-          }
-        }
-      });
+        });
+      }
     }
   }
 

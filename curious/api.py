@@ -7,6 +7,7 @@ from django.views.generic.base import View
 
 from curious import model_registry
 from .query import Query
+from .profile import report_time
 
 
 class JSONView(View):
@@ -43,6 +44,7 @@ class ModelView(JSONView):
       return self._error(404, "Unknown model '%s': %s" % (model_name, str(e)))
     return self._return(200, ModelView.model_to_dict(cls))
 
+  @report_time
   def post(self, request, model_name):
     """
     Fetch objects in batch.
@@ -61,15 +63,8 @@ class ModelView(JSONView):
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
 
-    r = []
-    for id in data['ids']:
-      try:
-        obj = cls.objects.get(pk=id)
-      except:
-        return self._error(404, "Cannot find instance '%s' on '%s'" % (id, model_name))
-      else:
-        r.append(ObjectView.object_to_dict(obj))
-
+    r = cls.objects.filter(id__in=data['ids'])
+    r = [ObjectView.object_to_dict(obj) for obj in r]
     return self._return(200, r)
 
 
@@ -109,6 +104,7 @@ class ObjectView(JSONView):
 
 class QueryView(JSONView):
 
+  @report_time
   def get(self, request):
     if 'q' not in request.GET:
       return self._error(400, 'Missing query')
