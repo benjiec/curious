@@ -3,6 +3,9 @@
 function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
   $scope.__base_url = '/curious';
 
+  // SearchController object cache 
+  $scope._object_cache = {};
+
   $scope.query = '';
   $scope.query_error = '';
   $scope.query_accepted = '';
@@ -14,7 +17,7 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
 
   if ($routeParams && $routeParams.query) {
     $scope.query = $routeParams.query;
-    $scope.query_submitted = [$scope.query];
+    $scope.query_submitted = [{query: $scope.query, reload: false}];
     var i = $scope.recent_queries.indexOf($routeParams.query);
     if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
   }
@@ -43,9 +46,10 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
       });
   };
 
-  $scope._new_query = function(query) {
+  $scope._new_query = function(query, reload) {
     var url = '/q/'+encodeURI(query);
     $location.path(url);
+    $scope.query_submitted = [{query: $scope.query, reload: reload}];
   }
 
   $scope.checkQuery = function(cb) {
@@ -56,10 +60,15 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
     });
   };
 
-  $scope.submitQuery = function () {
+  $scope.submitQuery = function(reload) {
+    if (reload === undefined) { reload = false; }
     $scope.checkQuery(function(query_string, err) {
-      if (query_string !== '') { $scope._new_query(query_string); }
+      if (query_string !== '') { $scope._new_query(query_string, reload); }
     });
+  };
+
+  $scope.refreshQuery = function () {
+    $scope.reload = true;
   };
 
   $scope.extendQuery = function(model, rel) {
@@ -71,10 +80,10 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
 var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
-      .when('/', {template: JST['search'],
-                  controller: SearchController})
+      .when('/', { template: JST['search'],
+                   controller: SearchController})
       .when('/q/:query*', { template: JST['search'],
-                           controller: SearchController })
+                            controller: SearchController })
       .otherwise({redirectTo: '/'});
   }]);
 
@@ -107,18 +116,19 @@ app.factory('RecentQueries', function() {
 // structure that angular template can easily use to display the objects and
 // their attributes.
 
-function curiousJoinTable(results, set_table_cb, get_objects_f) {
+function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) {
   // Constructor:
-  //   results       - array of search results, each result has a model and a
-  //                  list of object output input tuples
-  //   set_table_cb  - callback to set table data structure, should take a hash
-  //   get_objects_f - function to fetch objects in batch, should take a model and an ids list
+  //   results        - array of search results, each result has a model and a
+  //                    list of object output input tuples
+  //   set_table_cb   - callback to set table data structure, should take a hash
+  //   object_cache_f - function to call to get object cache
+  //   get_objects_f  - function to fetch objects in batch, should take a model
+  //                    and an ids list
 
   var GET_BATCH = 500;  // how many objects to fetch from server at a time
   var DEFAULT_PAGE_SIZE = 100;
 
   var entries = [];
-  var objects = [];
   var models = [];
 
   // public variables sent to set_table_cb
@@ -179,12 +189,12 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     for (var j=0; j<entries[i].length; j++) {
       var entry = entries[i][j];
       var obj_id = entry.model+'.'+entry.id;
-      if (objects[obj_id] === undefined) {
+      if (object_cache_f()[obj_id] === undefined) {
         var id_str = ''+entry.id;
         if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
-        objects[obj_id] = {id: {value: entry.id, display: id_str }};
+        object_cache_f()[obj_id] = {id: {value: entry.id, display: id_str }};
       }
-      entry['ptr'] = objects[obj_id];
+      entry['ptr'] = object_cache_f()[obj_id];
     }
   }
 
@@ -200,7 +210,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   function add_object_data(model, obj_data) {
     var id = obj_data.id;
     var obj_id = model+'.'+id;
-    var ptr = objects[obj_id];
+    var ptr = object_cache_f()[obj_id];
     ptr['__fetched__'] = obj_data;
     for (var a in obj_data) {
       // already has id field with link, don't overwrite that
@@ -229,8 +239,8 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     for (var i=0; i<ids.length; i++) {
       var id = ids[i];
       var obj_id = model+'.'+id;
-      if (obj_id in objects && objects[obj_id]['__fetched__']) {
-        cb_data = objects[obj_id]['__fetched__'];
+      if (obj_id in object_cache_f() && object_cache_f()[obj_id]['__fetched__']) {
+        cb_data = object_cache_f()[obj_id]['__fetched__'];
       }
       else { unfetched.push(id); }
     }
@@ -471,9 +481,10 @@ function QueryController($scope, $http) {
     });
   }
 
-  function do_query(query_string, cb) {
+  function do_query(query_string, reload, cb) {
     var url = $scope.__base_url+'/q/';
-    var url = url+'?r=1&q='+encodeURIComponent(query_string);
+    var url = url+'?q='+encodeURIComponent(query_string);
+    if (reload) { url = url+'&r=1'; }
     $http.get(url)
       .success(function(data) {
         if (data.result) { cb(data.result, undefined); }
@@ -489,7 +500,7 @@ function QueryController($scope, $http) {
     init_query();
 
     var query = $scope.query;
-    do_query(query, function(result, err) {
+    do_query(query, $scope.query_info.reload, function(result, err) {
       $scope.completed = true;
       if (err) {
         $scope.success = false;
@@ -505,7 +516,10 @@ function QueryController($scope, $http) {
             }
           });
           // create join table
-          curiousJoinTable(result, function(tbl) { $scope.table = tbl; }, get_objects);
+          curiousJoinTable(result,
+                           function(tbl) { $scope.table = tbl; },
+                           function() { return $scope.$parent._object_cache; },
+                           get_objects);
         }
       }
     });
@@ -519,5 +533,6 @@ function QueryController($scope, $http) {
     }
   };
 
+  $scope.query = $scope.query_info.query;
   execute();
 };

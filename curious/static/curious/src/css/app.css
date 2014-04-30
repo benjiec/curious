@@ -26,6 +26,3 @@ textarea.csv {
 td.id, th.id { width: 10px; white-space: nowrap; }
 
 .page-summary { display: inline-block; width:45%; }
-.paging { display: inline-block; width: 40px; padding-right: 2px; }
-.paging-prev { text-align: right; }
-.paging-next { text-align: left; }

@@ -5,12 +5,15 @@
 </p>
 
 <div class="well">
-  <form ng-submit="submitQuery()">
-    <div class="input-group">
-      <span class="input-group-addon">Query</span>
-      <input class="form-control" ng-model="query" ng-change="delayCheckQuery()" />
+  <div class="row">
+  <form>
+    <div class="col-md-10">
+      <input class="form-control" ng-model="query" ng-change="delayCheckQuery()" placeholder='Query' />
     </div>
+    <button type="submit" class="btn btn-primary" ng-click="submitQuery()">Search</button>
+    <button type="submit" class="btn btn-warning" ng-click="submitQuery(true)">Refresh</button>
   </form>
+  </div>
 </div>
 
 <p ng-if="query_error">
@@ -24,7 +27,7 @@
 </p>
 
 <div id="results">
-  <div ng-repeat="query in query_submitted">
+  <div ng-repeat="query_info in query_submitted">
     <partial template="query" ng-controller="QueryController"></partial>
   </div>
 </div>

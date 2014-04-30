@@ -3,6 +3,9 @@
 function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
   $scope.__base_url = '/curious';
 
+  // SearchController object cache 
+  $scope._object_cache = {};
+
   $scope.query = '';
   $scope.query_error = '';
   $scope.query_accepted = '';
@@ -14,7 +17,7 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
 
   if ($routeParams && $routeParams.query) {
     $scope.query = $routeParams.query;
-    $scope.query_submitted = [$scope.query];
+    $scope.query_submitted = [{query: $scope.query, reload: false}];
     var i = $scope.recent_queries.indexOf($routeParams.query);
     if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
   }
@@ -43,9 +46,10 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
       });
   };
 
-  $scope._new_query = function(query) {
+  $scope._new_query = function(query, reload) {
     var url = '/q/'+encodeURI(query);
     $location.path(url);
+    $scope.query_submitted = [{query: $scope.query, reload: reload}];
   }
 
   $scope.checkQuery = function(cb) {
@@ -56,10 +60,15 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
     });
   };
 
-  $scope.submitQuery = function () {
+  $scope.submitQuery = function(reload) {
+    if (reload === undefined) { reload = false; }
     $scope.checkQuery(function(query_string, err) {
-      if (query_string !== '') { $scope._new_query(query_string); }
+      if (query_string !== '') { $scope._new_query(query_string, reload); }
     });
+  };
+
+  $scope.refreshQuery = function () {
+    $scope.reload = true;
   };
 
   $scope.extendQuery = function(model, rel) {

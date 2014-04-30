@@ -2,18 +2,19 @@
 // structure that angular template can easily use to display the objects and
 // their attributes.
 
-function curiousJoinTable(results, set_table_cb, get_objects_f) {
+function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) {
   // Constructor:
-  //   results       - array of search results, each result has a model and a
-  //                  list of object output input tuples
-  //   set_table_cb  - callback to set table data structure, should take a hash
-  //   get_objects_f - function to fetch objects in batch, should take a model and an ids list
+  //   results        - array of search results, each result has a model and a
+  //                    list of object output input tuples
+  //   set_table_cb   - callback to set table data structure, should take a hash
+  //   object_cache_f - function to call to get object cache
+  //   get_objects_f  - function to fetch objects in batch, should take a model
+  //                    and an ids list
 
   var GET_BATCH = 500;  // how many objects to fetch from server at a time
   var DEFAULT_PAGE_SIZE = 100;
 
   var entries = [];
-  var objects = [];
   var models = [];
 
   // public variables sent to set_table_cb
@@ -74,12 +75,12 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     for (var j=0; j<entries[i].length; j++) {
       var entry = entries[i][j];
       var obj_id = entry.model+'.'+entry.id;
-      if (objects[obj_id] === undefined) {
+      if (object_cache_f()[obj_id] === undefined) {
         var id_str = ''+entry.id;
         if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
-        objects[obj_id] = {id: {value: entry.id, display: id_str }};
+        object_cache_f()[obj_id] = {id: {value: entry.id, display: id_str }};
       }
-      entry['ptr'] = objects[obj_id];
+      entry['ptr'] = object_cache_f()[obj_id];
     }
   }
 
@@ -95,7 +96,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   function add_object_data(model, obj_data) {
     var id = obj_data.id;
     var obj_id = model+'.'+id;
-    var ptr = objects[obj_id];
+    var ptr = object_cache_f()[obj_id];
     ptr['__fetched__'] = obj_data;
     for (var a in obj_data) {
       // already has id field with link, don't overwrite that
@@ -124,8 +125,8 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
     for (var i=0; i<ids.length; i++) {
       var id = ids[i];
       var obj_id = model+'.'+id;
-      if (obj_id in objects && objects[obj_id]['__fetched__']) {
-        cb_data = objects[obj_id]['__fetched__'];
+      if (obj_id in object_cache_f() && object_cache_f()[obj_id]['__fetched__']) {
+        cb_data = object_cache_f()[obj_id]['__fetched__'];
       }
       else { unfetched.push(id); }
     }

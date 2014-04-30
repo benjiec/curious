@@ -1,10 +1,10 @@
 var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
-      .when('/', {template: JST['search'],
-                  controller: SearchController})
+      .when('/', { template: JST['search'],
+                   controller: SearchController})
       .when('/q/:query*', { template: JST['search'],
-                           controller: SearchController })
+                            controller: SearchController })
       .otherwise({redirectTo: '/'});
   }]);
 

@@ -38,9 +38,10 @@ function QueryController($scope, $http) {
     });
   }
 
-  function do_query(query_string, cb) {
+  function do_query(query_string, reload, cb) {
     var url = $scope.__base_url+'/q/';
-    var url = url+'?r=1&q='+encodeURIComponent(query_string);
+    var url = url+'?q='+encodeURIComponent(query_string);
+    if (reload) { url = url+'&r=1'; }
     $http.get(url)
       .success(function(data) {
         if (data.result) { cb(data.result, undefined); }
@@ -56,7 +57,7 @@ function QueryController($scope, $http) {
     init_query();
 
     var query = $scope.query;
-    do_query(query, function(result, err) {
+    do_query(query, $scope.query_info.reload, function(result, err) {
       $scope.completed = true;
       if (err) {
         $scope.success = false;
@@ -72,7 +73,10 @@ function QueryController($scope, $http) {
             }
           });
           // create join table
-          curiousJoinTable(result, function(tbl) { $scope.table = tbl; }, get_objects);
+          curiousJoinTable(result,
+                           function(tbl) { $scope.table = tbl; },
+                           function() { return $scope.$parent._object_cache; },
+                           get_objects);
         }
       }
     });
@@ -86,5 +90,6 @@ function QueryController($scope, $http) {
     }
   };
 
+  $scope.query = $scope.query_info.query;
   execute();
 };

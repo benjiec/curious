@@ -60,7 +60,7 @@
   </tr>
 
   <tr ng-repeat="row in table.view.getCurrentItems() track by $index">
-    <td class="id">{{ row.i }}</td>
+    <td class="id">{{ row.i+1 }}</td>
     <td class="wrap" ng-repeat="object in row.row track by $index" ng-if="table.attrs[$index].visible">
       <span ng-bind-html="object.ptr[table.attrs[$index].name]|showAttr"></span>
     </td>
