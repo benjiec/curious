@@ -428,7 +428,7 @@ function curiousJoinTable(results, set_table_cb, get_objects_f) {
   update_table(); // initialize table
 
   // by default, fetch objects from last query if table is not too big
-  if (entries.length < 200) { show_object_attrs(entries[0].length-1); }
+  if (entries.length > 0 && entries[0].length > 0) { show_object_attrs(entries[0].length-1); }
 }
 
 'use strict';
