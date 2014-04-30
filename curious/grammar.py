@@ -19,7 +19,9 @@ another_arg  = space* "," space* arg
 arg          = arg_name space* "=" space* values
 arg_name     = identifier
 values       = array_value / value
-array_value  = "[" space* value another_val* space* "]"
+array_value  = bracket_l space* value another_val* space* bracket_r
+bracket_l    = "[" / "("
+bracket_r    = "]" / ")"
 another_val  = space* "," space* value
 value        = string / bool / float / int / null
 int          = ~"\\-?[0-9]+"
