@@ -110,7 +110,7 @@ class QueryView(JSONView):
     v = cache.get(k)
     if v is None or force:
       v = self.run_query(query)
-      cache.set(k, v)
+      cache.set(k, v, None)
     return v
 
   def run_query(self, query):
