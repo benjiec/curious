@@ -514,7 +514,6 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
 
   $scope.checkQuery = function(cb) {
     if ($scope.query != '') {
-      console.log('checking '+$scope.query+'.');
       $scope._check_query($scope.query, function(query_string, err) {
         $scope.query_error = err;
         $scope.query_accepted = query_string;
