@@ -53,11 +53,13 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
   }
 
   $scope.checkQuery = function(cb) {
-    $scope._check_query($scope.query, function(query_string, err) {
-      $scope.query_error = err;
-      $scope.query_accepted = query_string;
-      if (cb !== undefined) { cb(query_string, err); }
-    });
+    if ($scope.query != '') {
+      $scope._check_query($scope.query, function(query_string, err) {
+        $scope.query_error = err;
+        $scope.query_accepted = query_string;
+        if (cb !== undefined) { cb(query_string, err); }
+      });
+    }
   };
 
   $scope.submitQuery = function(reload) {

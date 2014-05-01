@@ -167,16 +167,19 @@ class Query(object):
 
     subquery = step['subquery']
     having = step['having']
+    print 'sub %s, having %s' % (subquery, having)
 
     objects = [obj for obj, src in obj_src]
     subquery_res = Query._query(objects, subquery)
+    print 'res %s' % (subquery_res,)
+
     if len(subquery_res) > 0:
       # only care about objects from the last join query
       subquery_res = subquery_res[-1]
 
     keep = []
     for obj, src in obj_src:
-      res = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj]
+      res = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
       if (having is True and len(res) > 0) or\
          (having is False and len(res) == 0):
         keep.append((obj, src))
