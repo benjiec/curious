@@ -206,7 +206,7 @@ class Query(object):
     obj_src = [(obj, obj.pk) for obj in objects]
     for step in query:
       if len(obj_src) == 0:
-        return []
+        return [], None
 
       if 'join' in step and step['join'] is True:
         res.append(obj_src)
