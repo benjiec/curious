@@ -114,7 +114,7 @@ class QueryView(JSONView):
     return v
 
   def run_query(self, query):
-    res = query()
+    res, last_model = query()
     results = []
     for obj_src in res:
       model = type(obj_src[0][0])
@@ -123,7 +123,10 @@ class QueryView(JSONView):
            'objects': [(obj.pk, model_registry.geturl(model_name, obj), src) for obj, src in obj_src]
           }
       results.append(d)
-    return results
+    if last_model is not None:
+      return dict(last_model=model_registry.getname(last_model), results=results)
+    else:
+      return dict(last_model=None, results=results)
 
   @report_time
   def get(self, request):

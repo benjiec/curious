@@ -56,11 +56,17 @@ class ASTBuilder(NodeVisitor):
     return q[0]
 
   def visit_sub_query(self, node, (modifier, _1, q, _2)):
-    if modifier == '-':
-      w = False
+    join = False
+    having = False
+    if type(modifier) == list:
+      if modifier[0] == '-':
+        having = False
+      else:
+        having = True
     else:
-      w = True
-    return dict(subquery=q, having=w)
+      having = True
+      join = True
+    return dict(subquery=q, having=having, join=join)
 
   def visit_one_query(self, node, (join, _1, one_rel, recursion)):
     if type(join) == list:

@@ -57,7 +57,7 @@ function QueryController($scope, $http) {
     init_query();
 
     var query = $scope.query;
-    do_query(query, $scope.query_info.reload, function(result, err) {
+    do_query(query, $scope.query_info.reload, function(res, err) {
       $scope.completed = true;
       if (err) {
         $scope.success = false;
@@ -65,15 +65,13 @@ function QueryController($scope, $http) {
       }
       else {
         $scope.success = true;
-        if (result.length > 0) {
-          $scope.last_model = result[result.length-1].model;
-          get_model($scope.last_model, function(result, error) {
-            if (result) {
-              if (result.relationships) { $scope.last_model_rels = result.relationships; }
-            }
+        if (res.last_model) { $scope.last_model = res.last_model; }
+        if (res.results.length > 0) {
+          get_model($scope.last_model, function(res, error) {
+            if (res) { if (res.relationships) { $scope.last_model_rels = res.relationships; } }
           });
           // create join table
-          curiousJoinTable(result,
+          curiousJoinTable(res.results,
                            function(tbl) { $scope.table = tbl; },
                            function() { return $scope.$parent._object_cache; },
                            get_objects);

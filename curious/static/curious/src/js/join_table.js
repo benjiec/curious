@@ -26,7 +26,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
   // from results, construct entries table - joining results together
 
-  // for each result, build a dict indexed by object id
+  // for each result, build dict indexed by object id
   for (var i=0; i<results.length; i++) {
     results[i].map = {}
     for (var j=0; j<results[i].objects.length; j++) {
@@ -65,8 +65,8 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     entries = new_entries;
   }
 
-  // sort by first column
-  entries.sort(function(a, b) { return a[0].id-b[0].id; });
+  // by default, sort by first column, reverse order
+  entries.sort(function(a, b) { return b[0].id-a[0].id; });
 
   // create a dict of objects, add ptr to object from each cell in entries
   // table. this allows sharing of objects if there are duplicates in query

@@ -167,77 +167,86 @@ class Query(object):
 
     subquery = step['subquery']
     having = step['having']
-    print 'sub %s, having %s' % (subquery, having)
+    #print 'sub %s, having %s' % (subquery, having)
 
     objects = [obj for obj, src in obj_src]
-    subquery_res = Query._query(objects, subquery)
-    print 'res %s' % (subquery_res,)
+    subquery_res, last_model = Query._query(objects, subquery)
+    #print 'res %s' % (subquery_res,)
 
     if len(subquery_res) > 0:
-      # only care about objects from the last join query
+      assert(len(subquery_res) == 1)
       subquery_res = subquery_res[-1]
 
     keep = []
     for obj, src in obj_src:
-      res = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
-      if (having is True and len(res) > 0) or\
-         (having is False and len(res) == 0):
+      result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
+      if (having is True and len(result_from_subq) > 0) or\
+         (having is False and len(result_from_subq) == 0):
         keep.append((obj, src))
 
-    return keep
-
-
-  @staticmethod
-  def _step(obj_src, step):
-    """
-    Executes one step, which can either be a relation, or a subquery filter.
-    Takes in and returns arrays of output, input object tuples.
-    """
-
-    if 'subquery' in step:
-      # print 'subquery %s' % step
-      return Query._filter_by_subquery(obj_src, step)
-    else:
-      # print 'rel %s' % step
-      return Query._rel_step(obj_src, step)
+    return keep, subquery_res
 
 
   @staticmethod
   def _query(objects, query):
     """
-    Executes a query. A query is an array whose elements are model
-    relationships or subqueries. 
+    Executes a query. A query consists of one or more subqueries. Each subquery
+    is an array of model relationships. In most cases the outputs of a subquery
+    becomes the inputs to the next query. 
     
-    Input objects should be an array of model
-    instances. Returns array of tuples; first member of tuple is output object
-    from query, second member of tuple is the pk of the input object that
-    produced the output.
+    Input objects should be an array of model instances. Returns an array of
+    subquery results. Each subquery result is an array of tuples. First member
+    of tuple is output object from query. Second member of tuple is the pk of
+    the input object that produced the output.
     """
 
     res = []
+    more_results = True
 
     obj_src = [(obj, obj.pk) for obj in objects]
     for step in query:
       if len(obj_src) == 0:
         return []
 
-      if 'join' in step:
+      if 'join' in step and step['join'] is True:
         res.append(obj_src)
+        more_results = False
         obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
 
-      obj_src = Query._step(obj_src, step)
+      if 'subquery' in step:
+        # print 'subquery %s' % step
+        obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
+        if 'join' in step and step['join'] is True:
+          # add subquery result to results
+          res.append(subquery_res)
+          more_results = False
+          # link subquery res to pre subquery result, so we can continue query
+          # from pre subquery result
+          new_obj_src = []
+          for obj, src in obj_src:
+            new_obj_src += [(obj, sub_obj.pk) for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
+          obj_src = new_obj_src
+
+      else:
+        # print 'rel %s' % step
+        obj_src = Query._rel_step(obj_src, step)
+        more_results = True
 
     if len(obj_src) == 0:
-      return []
-    res.append(obj_src)
-    return res
+      return [], None
+
+    if more_results:
+      res.append(obj_src)
+    return res, obj_src[0][0].__class__
 
 
   def __call__(self):
     """
     Executes the current query. Returns array of tuples; first member of tuple
     is output object from query, second member of tuple is the object from the
-    first step of the query that produced the output object.
+    first step of the query that produced the output object. Also returns
+    current model at end of query, which may be different than model of the
+    last result if last result is a filter query.
     """
 
     objects = list(self.__get_objects())
