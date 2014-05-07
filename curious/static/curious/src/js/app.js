@@ -24,7 +24,10 @@ app.filter('encodeURI', function() { return window.encodeURI; });
 
 app.filter('showAttr', function() {
   return function(obj) {
-    if (obj && obj.hasOwnProperty('display')) { return obj.display; }
+    if (obj && obj.hasOwnProperty('display')) {
+      if (obj.display === null || obj.display === undefined) { return ''; }
+      return ''+obj.display;
+    }
     else { return obj; }
   }
 });

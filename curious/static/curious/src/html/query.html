@@ -56,7 +56,17 @@
 
   <tr class="success">
     <th class="id"></th>
-    <th class="wrap" ng-repeat="attr in table.attrs track by $index" ng-if="attr.visible">{{ attr.name }}</th>
+    <th class="wrap" ng-repeat="attr in table.attrs track by $index" ng-if="attr.visible">
+      <a href="javascript:void(0);" ng-click="table.sort($index)" ng-if="table.controls.sort_column !== $index"
+       >{{ attr.name }}</a>
+      <span ng-if="table.controls.sort_column === $index">
+        {{ attr.name }}
+        <a href="javascript:void(0);" ng-click="table.sort($index)"
+         ><span class="glyphicon glyphicon-chevron-up" ng-if="table.controls.sort_asc"
+          ></span><span class="glyphicon glyphicon-chevron-down" ng-if="!table.controls.sort_asc"
+          ></span></a>
+      </span>
+    </th>
   </tr>
 
   <tr ng-repeat="row in table.view.getCurrentItems() track by $index">

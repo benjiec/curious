@@ -23,6 +23,9 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   var tbl_rows = [];
   var tbl_view = undefined;
   var tbl_csv = undefined;
+  var tbl_controls = {};
+  var pourover_collection = undefined;
+  var outstanding_requests = 0;
 
   // from results, construct entries table - joining results together
 
@@ -119,7 +122,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
   // fetching objects from server or cache. calls callback with one arbitrary
   // object's data.
-  function get_objects(model, ids, cb) {
+  function get_objects(model, ids, cb, complete_cb) {
     var cb_data = undefined;
     var unfetched = [];
     for (var i=0; i<ids.length; i++) {
@@ -132,19 +135,25 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     }
     if (cb_data !== undefined && cb) { cb(cb_data); }
 
+    if (unfetched.length == 0 && outstanding_requests == 0) { complete_cb(); }
+
     if (unfetched.length > 0) {
       while (unfetched.length > 0) {
         var tofetch = unfetched.slice(0, GET_BATCH);
         var unfetched = unfetched.slice(GET_BATCH);
+        outstanding_requests += 1;
         get_objects_f(model, tofetch, function(results) {
+          outstanding_requests -= 1;
           for (var i=0; i<results.length; i++) {
             var obj_data = results[i];
             add_object_data(model, obj_data);
             if (cb_data === undefined && cb) {
               cb_data = obj_data;
+              // console.log(obj_data);
               cb(obj_data);
             }
           }
+          if (outstanding_requests == 0) { complete_cb(); }
         });
       }
     }
@@ -201,15 +210,78 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   function update_pourover(page_size) {
     var col_data = [];
     for (var i=0; i<tbl_rows.length; i++) {
-      col_data.push({i: i, row: tbl_rows[i]});
+      var d = {i: i, row: tbl_rows[i]};
+      col_data.push(d);
     }
-    var collection = new PourOver.Collection(col_data);
+    pourover_collection = new PourOver.Collection(col_data);
     if (page_size === undefined) { page_size = DEFAULT_PAGE_SIZE; }
-    tbl_view = new PourOver.View('default', collection, {page_size: page_size});
+    tbl_view = new PourOver.View('default', pourover_collection, {page_size: page_size});
+    tbl_controls = {};
+  }
+
+  // can only call this when we have all the data for all the rows
+  //
+  function update_pourover_sorters() {
+    function make_sorter(col, attr, reverse) {
+      var ColSorter = PourOver.Sort.extend({
+        attr: 'foo',
+        fn: function(a, b) {
+          if (a.row[col].ptr[attr] === undefined) { return 1; }
+          if (b.row[col].ptr[attr] === undefined) { return -1; }
+          var v_a = a.row[col].ptr[attr].value;
+          var v_b = b.row[col].ptr[attr].value;
+          if (reverse) {
+            var tmp = v_a;
+            v_a = v_b;
+            v_b = tmp;
+          }
+          if (v_a === undefined || v_a === null) { return 1; }
+          if (v_a > v_b) { return -1; }
+          else if (v_a < v_b) { return 1; }
+          else { return 0; }
+        }
+      });
+      return ColSorter;
+    }
+
+    var sorters = [];
+    for (var i=0; i<tbl_attrs.length; i++) {
+      var ColSorterAsc = make_sorter(i, tbl_attrs[i].name, true);
+      var ColSorterDsc = make_sorter(i, tbl_attrs[i].name, false);
+      sorters.push(new ColSorterAsc('_asc_col_'+i));
+      sorters.push(new ColSorterDsc('_dsc_col_'+i));
+    }
+
+    pourover_collection.addSorts(sorters);
+    // default sort first column
+    tbl_view.setSort('_asc_col_0');
+    tbl_controls.sort_column = 0;
+    tbl_controls.sort_asc = true;
   }
 
   function next_page() { tbl_view.page(1); }
   function prev_page() { tbl_view.page(-1); }
+
+  function sort(column_index) {
+    var sorter_name;
+    if (tbl_controls.sort_column === column_index) {
+      if (tbl_controls.sort_asc === false) {
+        tbl_controls.sort_asc = true;
+        sorter_name = '_asc_col_'+column_index;
+      }
+      else {
+        tbl_controls.sort_asc = false;
+        sorter_name = '_dsc_col_'+column_index;
+      }
+    }
+    else {
+      tbl_controls.sort_column = column_index;
+      tbl_controls.sort_asc = true;
+      sorter_name = '_asc_col_'+column_index;
+    }
+    // console.log('sort '+sorter_name);
+    tbl_view.setSort(sorter_name);
+  }
 
   function update_csv() {
     if (tbl_csv) { tbl_csv = csv(); }
@@ -251,12 +323,14 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
       attrs: tbl_attrs,
       length: tbl_rows.length,
       view: tbl_view,
+      controls: tbl_controls,
       csv: tbl_csv,
       // actions
       toggleQuery: toggle,
       showCSV: show_csv,
       nextPage: next_page,
-      prevPage: prev_page
+      prevPage: prev_page,
+      sort: sort
     });
   }
 
@@ -297,6 +371,9 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     get_objects(models[query_idx].model, ids, function(data) {
       update_model_attrs(query_idx, data);
       models[query_idx].loaded = true;
+    }, function() {
+      console.log('all fetch completed');
+      update_pourover_sorters();
     });
   }
 
