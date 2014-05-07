@@ -113,6 +113,7 @@ class Query(object):
 
       elif need_terminal:
         # get all reachable objects, w/o filtering
+        src = [(t[0], t[0].pk) for t in obj_src]
         reachable = Query._graph_step(src, step_f, None)
         for tup in reachable:
           if tup not in next_obj_src:
