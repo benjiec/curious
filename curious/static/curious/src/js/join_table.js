@@ -65,8 +65,8 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     entries = new_entries;
   }
 
-  // by default, sort by first column, reverse order
-  entries.sort(function(a, b) { return b[0].id-a[0].id; });
+  // by default, sort by last column, reverse order
+  entries.sort(function(a, b) { return b[b.length-1].id-a[a.length-1].id; });
 
   // create a dict of objects, add ptr to object from each cell in entries
   // table. this allows sharing of objects if there are duplicates in query
