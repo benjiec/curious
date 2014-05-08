@@ -98,7 +98,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
   return get_related_objects
 
 
-def step_one(nodes, attr, filters=None):
+def traverse(nodes, attr, filters=None):
   """
   Traverse one relationship on list of nodes. Returns output, input tuple
   array, where input is the pk of the node producing the output object.

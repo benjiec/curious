@@ -1,6 +1,6 @@
 from .parser import Parser
 from curious import model_registry
-from curious.graph import step_one
+from curious.graph import traverse
 
 
 class Query(object):
@@ -74,7 +74,7 @@ class Query(object):
     query, not start of this step.
     """
 
-    next_obj_src = step_one([obj for obj, src in obj_src], step_f, filters)
+    next_obj_src = traverse([obj for obj, src in obj_src], step_f, filters)
 
     keep = []
     for next_obj, next_src in next_obj_src:
