@@ -31,12 +31,13 @@ class TestFK(TestCase):
                                   (self.blogs[1], self.entries[3].pk)])
 
   def test_can_traverse_to_fk_objects_with_filter(self):
-    blogs = traverse(self.entries, Entry.blog, filters=dict(name__icontains='graph'))
+    f = dict(method='filter', kwargs=dict(name__icontains='graph'))
+    blogs = traverse(self.entries, Entry.blog, filters=[f])
     self.assertItemsEqual(blogs, [(self.blogs[1], self.entries[3].pk)])
 
   def test_can_traverse_to_fk_objects_with_exclusions(self):
-    f = {'__exclude__': True, 'name__icontains': 'graph'}
-    blogs = traverse(self.entries, Entry.blog, filters=f)
+    f = dict(method='exclude', kwargs=dict(name__icontains='graph'))
+    blogs = traverse(self.entries, Entry.blog, filters=[f])
     self.assertItemsEqual(blogs, [(self.blogs[0], self.entries[0].pk),
                                   (self.blogs[0], self.entries[1].pk),
                                   (self.blogs[0], self.entries[2].pk)])
@@ -49,12 +50,13 @@ class TestFK(TestCase):
                                     (self.entries[3], self.blogs[1].pk)])
 
   def test_can_traverse_from_fk_objects_with_filter(self):
-    entries = traverse(self.blogs, Blog.entry_set, filters=dict(headline__icontains='graph'))
+    f = dict(method='filter', kwargs=dict(headline__icontains='graph'))
+    entries = traverse(self.blogs, Blog.entry_set, filters=[f])
     self.assertItemsEqual(entries, [(self.entries[2], self.blogs[0].pk),
                                     (self.entries[3], self.blogs[1].pk)])
 
   def test_can_traverse_from_fk_objects_with_exclusions(self):
-    f = {'__exclude__': True, 'headline__icontains': 'graph'}
-    entries = traverse(self.blogs, Blog.entry_set, filters=f)
+    f = dict(method='exclude', kwargs=dict(headline__icontains='graph'))
+    entries = traverse(self.blogs, Blog.entry_set, filters=[f])
     self.assertItemsEqual(entries, [(self.entries[0], self.blogs[0].pk),
                                     (self.entries[1], self.blogs[0].pk)])

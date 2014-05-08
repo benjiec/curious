@@ -31,11 +31,11 @@ class TestFunc(TestCase):
     self.assertItemsEqual(authors, Blog.authors(self.blogs))
 
   def test_can_traverse_via_function_with_filter(self):
-    f = {'name__icontains': 'Smith'}
-    authors = traverse(self.blogs, Blog.authors, filters=f)
+    f = dict(method='filter', kwargs=dict(name__icontains='Smith'))
+    authors = traverse(self.blogs, Blog.authors, filters=[f])
     self.assertItemsEqual(authors, [x for x in Blog.authors(self.blogs) if 'Smith' in x[0].name])
 
   def test_can_traverse_via_function_with_exclusions(self):
-    f = {'__exclude__': True, 'name__icontains': 'Smith'}
-    authors = traverse(self.blogs, Blog.authors, filters=f)
+    f = dict(method='exclude', kwargs=dict(name__icontains='Smith'))
+    authors = traverse(self.blogs, Blog.authors, filters=[f])
     self.assertItemsEqual(authors, [x for x in Blog.authors(self.blogs) if 'Smith' not in x[0].name])

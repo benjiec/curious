@@ -1,6 +1,6 @@
 from .parser import Parser
 from curious import model_registry
-from curious.graph import traverse
+from curious.graph import traverse, mk_filter_function
 
 
 class Query(object):
@@ -50,20 +50,17 @@ class Query(object):
     model = self.__obj_query['model']
     method = self.__obj_query['method']
     filters = self.__obj_query['filters']
-    if '__id__' in filters:
-      filters['pk'] = filters['__id__']
-      del filters['__id__']
+    filter_f = mk_filter_function(filters)
+    print filters
+
     if method is None:
       cls = model_registry.getclass(model)
-      if '__exclude__' in filters:
-        ff = {k: v for k, v in filters.iteritems() if k != '__exclue__'}
-        return cls.objects.exclude(**ff)
-      else:
-        x = cls.objects.filter(**filters)
-        return x
+      q = cls.objects.all()
+      q = filter_f(q)
+      return q
     else:
       f = model_registry.getattr(model, method)
-      return f(**filters)
+      return f(filter_f)
 
 
   @staticmethod

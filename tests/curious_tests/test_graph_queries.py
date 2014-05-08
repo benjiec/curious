@@ -36,8 +36,8 @@ class TestQueryCount(TestCase):
   def test_single_query_for_M2M_with_filter(self):
     connection.use_debug_cursor = True
     connection.queries = []
-    f = {'name__icontains': 'Smith'}
-    authors = traverse(self.entries, Entry.authors, filters=f)
+    f = dict(method='filter', kwargs=dict(name__icontains='Smith'))
+    authors = traverse(self.entries, Entry.authors, filters=[f])
     self.assertEquals(len(authors), 2*TestQueryCount.N)
     self.assertEquals(len(connection.queries), 1)
 
@@ -55,7 +55,7 @@ class TestQueryCount(TestCase):
     self.assertEquals(len(blogs), TestQueryCount.N)
     self.assertEquals(len(connection.queries), 1)
 
-  def test_single_query_for_reverse_FK(self):
+  def test_constant_number_of_queries_for_reverse_FK(self):
     connection.use_debug_cursor = True
     connection.queries = []
     entries = traverse(self.blogs, Blog.entry_set)

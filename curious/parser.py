@@ -41,7 +41,7 @@ class ASTBuilder(NodeVisitor):
     return f_or_id[0]
 
   def visit_id_arg(self, node, (_1, _2, id, _3, _4)):
-    return {'__id__': id}
+    return [dict(method='filter', kwargs=dict(id=id))]
 
   def visit_steps(self, node, (step, another_steps)):
     steps = [step]
@@ -87,9 +87,12 @@ class ASTBuilder(NodeVisitor):
     return dict(model=model, method=method, filters=rel_filter)
 
   def visit_rel_filter(self, node, (ex, _1, filters, _2)):
+    f = {'kwargs': filters}
     if type(ex) == list and ex[0].text != '':
-      filters['__exclude__'] = True
-    return filters
+      f['method'] = 'exclude'
+    else:
+      f['method'] = 'filter'
+    return [f]
 
   def visit_recursion(self, node, (star, double_star)):
     """Returns True if collecting terminal nodes, False if collecting intermediate nodes"""

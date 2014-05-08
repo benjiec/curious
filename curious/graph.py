@@ -7,10 +7,44 @@ these instances.
 
 import types
 from django.db.models.query import QuerySet
+from django.db.models import Count, Avg, Max, Min, Sum
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignRelatedObjectsDescriptor
 from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor
+
+
+def mk_filter_function(filters):
+  def apply_filters(q):
+    if filters is not None:
+      if type(q) != QuerySet:
+        raise Exception('Can only apply filters to queryset objects')
+      for _filter in filters:
+        if 'method' not in _filter or\
+           _filter['method'] not in ['exclude', 'filter',
+                                     'count', 'max', 'min', 'sum', 'avg']:
+          raise Exception('Missing or unknown method in filter')
+        if _filter['method'] in ['exclude', 'filter']:
+          if 'kwargs' not in _filter:
+            raise Exception('Missing kwargs for filter')
+          kwargs = _filter['kwargs']
+          q = getattr(q, _filter['method'])(**kwargs)
+        else:
+          if 'field' not in _filter:
+            raise Exception('Missing field for aggregation function')
+          if _filter['method'] == 'count':
+            f = Count(_filter['field'])
+          elif _filter['method'] == 'avg':
+            f = Avg(_filter['field'])
+          elif _filter['method'] == 'sum':
+            f = Sum(_filter['field'])
+          elif _filter['method'] == 'max':
+            f = Max(_filter['field'])
+          elif _filter['method'] == 'min':
+            f = Min(_filter['field'])
+          q = q.annotate(f)
+    return q
+  return apply_filters
 
 
 # The following django model attributes are relationships we can traverse
@@ -45,15 +79,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
 
   def get_related_objects(instances, filters=None):
     queryset = None
-
-    def apply_filters(q):
-      if filters is not None:
-        if '__exclude__' in filters:
-          ff = {k: v for k, v in filters.iteritems() if k != '__exclude__'}
-          return q.exclude(**ff)
-        else:
-          return q.filter(**filters)
-      return q
+    apply_filters = mk_filter_function(filters)
 
     # functioning defining a relationship
     if type(rel_obj_descriptor) in (types.FunctionType, types.MethodType):
