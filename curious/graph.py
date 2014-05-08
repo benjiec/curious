@@ -90,7 +90,10 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
       queryset._prefetch_done = True
 
-    if queryset:
+    # if you just do 'if queryset', that triggers query execution because
+    # python checks length of the enumerable. to prevent query execution, check
+    # if queryset is not None.
+    if queryset is not None:
       return apply_filters(queryset)
 
     return []
