@@ -119,8 +119,8 @@
         <a href="javascript:void(0);" ng-click="table.aggregate($index)"
            data-toggle="dropdown"
          ><span class="glyphicon glyphicon-stats"></span></a>
-        <ul class="dropdown-menu stats-list" role="menu">
-          <li> Aggregates based on all filters </li>
+        <ul class="dropdown-menu stats-list pull-right" role="menu">
+          <li> <b>Aggregates based on all filters</b> </li>
           <li ng-repeat="(v, counts) in table.controls.aggregates[$index]">
             <span ng-if="v === ''"><em>Empty</em>:</span>
             <span ng-if="v !== ''">{{ v }}:</span>
