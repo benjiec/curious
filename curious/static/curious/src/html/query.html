@@ -40,7 +40,10 @@
           <span class="glyphicon glyphicon-repeat"></span>
           to dynamically create a filter for the column, and then click on
           <span class="glyphicon glyphicon-search"></span>
-          to use filter.
+          to use filter. Click on
+          <span class="glyphicon glyphicon-stats"></span>
+          to see aggregate counts of values in the column, after applying
+          filters from all the columns.
         </div>
       </div>
     </div>
@@ -105,6 +108,18 @@
       <span ng-if="!table.controls.filters[$index]">
         <a href="javascript:void(0);" ng-click="table.make_filter($index)"
          ><span class="glyphicon glyphicon-repeat"></span></a>
+      </span>
+
+      <span ng-if="table.controls.filters[$index]" class="dropdown">
+        <a href="javascript:void(0);" ng-click="table.aggregate($index)"
+           data-toggle="dropdown"
+         ><span class="glyphicon glyphicon-stats"></span></a>
+        <ul class="dropdown-menu stats-list" role="menu">
+          <li> Aggregates based on all filters </li>
+          <li ng-repeat="(v, counts) in table.controls.aggregates[$index]">
+            {{ v }}: {{ counts }}
+          </li>
+        </ul>
       </span>
 
     </th>

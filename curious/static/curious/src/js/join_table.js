@@ -100,6 +100,8 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     }
     return value;
   }
+    
+  function _lc(s) { if (typeof s === 'string') { return s.toLowerCase(); } return s; }
 
   // add object data to cache
   function add_object_data(model, obj_data) {
@@ -299,8 +301,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   }
 
   function make_filter(column_index) {
-    function _lc(s) { if (typeof s === 'string') { return s.toLowerCase(); } return s; }
-
     var attr = tbl_attrs[column_index].name;
 
     var colFilter = PourOver.Filter.extend({
@@ -368,6 +368,23 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
       if (tbl_controls.filtered === undefined) { tbl_controls.filtered = {}; }
       tbl_controls.filtered[column_index] = undefined;
     }
+    tbl_controls.aggregates = {}
+  }
+
+  function aggregate(column_index) {
+    var attr = tbl_attrs[column_index].name;
+    var objs = pourover_collection.get(tbl_view.match_set.cids);
+    var counts = {};
+    for (var i=0; i<objs.length; i++) {
+      var v = objs[i].row[column_index].ptr[attr];
+      v = _get_attr_value(v);
+      v = _lc(v);
+      if (v === undefined || v === null) { v = ''; }
+      if (counts[v] === undefined) { counts[v] = 0; }
+      counts[v] += 1;
+    }
+    if (tbl_controls.aggregates === undefined) { tbl_controls.aggregates = {}; }
+    tbl_controls.aggregates[column_index] = counts;
   }
 
   function update_csv() {
@@ -420,6 +437,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
       sort: sort,
       make_filter: make_filter,
       filter: filter,
+      aggregate: aggregate
     });
   }
 
