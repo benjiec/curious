@@ -3,7 +3,8 @@
 #results-header { margin: 5px 0px; }
 
 /* in case there are long words, like sequences */
-td.wrap, th.wrap { word-wrap: break-word; }
+th { white-space: nowrap; }
+td.wrap { white-space: normal !important; word-wrap: break-word; }
 
 /* force line wrap when displaying queries as code */
 code { white-space:normal !important; }

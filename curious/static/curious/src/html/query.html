@@ -75,7 +75,7 @@
 
   <tr class="success">
     <th class="id"></th>
-    <th class="wrap" ng-repeat="attr in table.attrs track by $index" ng-if="attr.visible">
+    <th ng-repeat="attr in table.attrs track by $index" ng-if="attr.visible">
       <a href="javascript:void(0);" ng-click="table.sort($index)" ng-if="table.controls.sort_column !== $index"
        >{{ attr.name }}</a>
       <span ng-if="table.controls.sort_column === $index">
