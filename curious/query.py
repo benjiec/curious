@@ -51,7 +51,6 @@ class Query(object):
     method = self.__obj_query['method']
     filters = self.__obj_query['filters']
     filter_f = mk_filter_function(filters)
-    print filters
 
     if method is None:
       cls = model_registry.getclass(model)

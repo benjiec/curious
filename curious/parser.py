@@ -79,20 +79,35 @@ class ASTBuilder(NodeVisitor):
         one_rel['collect'] = 'intermediate'
     return one_rel
 
-  def visit_one_rel(self, node, (model, _1, method, rel_filter)):
-    if type(rel_filter) != list:
-      rel_filter = None
+  def visit_one_rel(self, node, (model, _1, method, filters)):
+    if type(filters) != list:
+      filters = None
     else:
-      rel_filter = rel_filter[0]
-    return dict(model=model, method=method, filters=rel_filter)
+      filters = filters[0]
+    return dict(model=model, method=method, filters=filters)
 
-  def visit_rel_filter(self, node, (ex, _1, filters, _2)):
-    f = {'kwargs': filters}
-    if type(ex) == list and ex[0].text != '':
-      f['method'] = 'exclude'
-    else:
-      f['method'] = 'filter'
-    return [f]
+  def visit_filters(self, node, (f, more_filters)):
+    filters = []
+    if type(f) == list:
+      f[0]['method'] = 'filter'
+      filters.append(f[0])
+    if type(more_filters) == list:
+      filters.extend(more_filters[0])
+    return filters
+
+  def visit_name_filters(self, node, (f, more_filters)):
+    filters = []
+    filters.append(f)
+    if type(more_filters) == list:
+      filters.extend(more_filters)
+    return filters
+
+  def visit_name_filter(self, node, (_1, method, f)):
+    f['method'] = method
+    return f
+
+  def visit_filter_group(self, node, (_1, args, _2)):
+    return args
 
   def visit_recursion(self, node, (star, double_star)):
     """Returns True if collecting terminal nodes, False if collecting intermediate nodes"""
@@ -103,7 +118,12 @@ class ASTBuilder(NodeVisitor):
   def visit_model(self, node, v):
     return v[0]
 
-  def visit_filters(self, node, (_1, arg, more_args, _2)):
+  def visit_filter_args(self, node, args):
+    if type(args[0]) == dict:
+      return {'kwargs': args[0]}
+    return {'field': args[0]}
+
+  def visit_filter_kvs(self, node, (_1, arg, more_args, _2)):
     d = arg
     for a in more_args:
       d.update(a)
