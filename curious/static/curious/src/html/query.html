@@ -31,18 +31,34 @@
     <a href="javascript:void(0)" ng-click="toggleCSV()">Table</a>
   </div>
 
-  <div id="recommended_rels" class="dropdown navbar-right">
-    <a data-toggle="dropdown" href="javascript:void(0);">Relations from {{ last_model }}</a>
-    <ul class="rel-list dropdown-menu" role="menu">
-      <li ng-repeat="rel in last_model_rels">
-        <span class="rel-actions">
-          <a class="btn btn-xs btn-info" href='javascript:void(0);' title="Extend query"
-             ng-click="extendQuery(last_model, rel)">Q</a>
-        </span>
-        <span class="rel-name">{{ rel }}</span>
-      </li>
-    </ul>
-  </div> <!-- recommended_rels -->
+  <div class="navbar-right">
+    <div class="dropdown">
+      <a data-toggle="dropdown" href="javascript:void(0);">Help</a>
+      <div class="dropdown-menu panel panel-default pull-right help">
+        <div class="panel-body">
+          Click on column header to sort. Click on
+          <span class="glyphicon glyphicon-repeat"></span>
+          to dynamically create a filter for the column, and then click on
+          <span class="glyphicon glyphicon-search"></span>
+          to use filter.
+        </div>
+      </div>
+    </div>
+
+    <div id="recommended_rels" class="dropdown">
+      <a data-toggle="dropdown" href="javascript:void(0);">Relations from {{ last_model }}</a>
+      <ul class="rel-list dropdown-menu" role="menu">
+        <li ng-repeat="rel in last_model_rels">
+          <span class="rel-actions">
+            <a class="btn btn-xs btn-info" href='javascript:void(0);' title="Extend query"
+               ng-click="extendQuery(last_model, rel)">Q</a>
+          </span>
+          <span class="rel-name">{{ rel }}</span>
+        </li>
+      </ul>
+    </div> <!-- recommended_rels -->
+
+  </div> <!-- navbar-right -->
 </div>
 
 <table class="table table-condensed table-striped table-bordered table-fixed" ng-if="table.attrs && !csv">

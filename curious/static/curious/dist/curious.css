@@ -26,3 +26,6 @@ textarea.csv {
 td.id, th.id { width: 10px; white-space: nowrap; }
 
 .page-summary { display: inline-block; width:45%; }
+
+.navbar-right .dropdown { float: left; margin-left: 10px; }
+.help { width: 400px; }
