@@ -72,11 +72,17 @@ class Query(object):
 
     next_obj_src = traverse([obj for obj, src in obj_src], step_f, filters)
 
+    # build input hash of IDs
+    input_map = {}
+    for obj, src in obj_src:
+      if obj.pk not in input_map:
+        input_map[obj.pk] = []
+      input_map[obj.pk].append(src)
+
     keep = []
     for next_obj, next_src in next_obj_src:
-      # find next_src in original obj_src
-      for obj, src in obj_src:
-        if obj.pk == next_src:
+      if next_src in input_map:
+        for src in input_map[next_src]:
           keep.append((next_obj, src))
 
     return list(set(keep))
@@ -225,7 +231,6 @@ class Query(object):
           obj_src = new_obj_src
 
       else:
-        # print 'rel %s' % step
         obj_src = Query._rel_step(obj_src, step)
         more_results = True
 

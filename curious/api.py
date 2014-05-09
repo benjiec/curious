@@ -45,7 +45,6 @@ class ModelView(JSONView):
       return self._error(404, "Unknown model '%s': %s" % (model_name, str(e)))
     return self._return(200, ModelView.model_to_dict(cls))
 
-  @report_time
   def post(self, request, model_name):
     """
     Fetch objects in batch.
