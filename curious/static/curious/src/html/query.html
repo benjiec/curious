@@ -87,8 +87,13 @@
       </span>
 
       <span ng-if="table.controls.filters[$index]" ng-init="columnIndex=$index">
-        <span ng-if="table.controls.filtered[$index]">
-          ({{ table.controls.filtered[$index] }})
+        <span ng-if="table.controls.filtered[$index] !== undefined">
+          <span ng-if="table.controls.filtered[$index] !== ''">
+            ({{ table.controls.filtered[$index] }})
+          </span>
+          <span ng-if="table.controls.filtered[$index] === ''">
+            (<em>empty</em>)
+          </span>
         </span>
         <span class="dropdown">
           <span class="dropdown-toggle" data-toggle="dropdown">
@@ -117,7 +122,9 @@
         <ul class="dropdown-menu stats-list" role="menu">
           <li> Aggregates based on all filters </li>
           <li ng-repeat="(v, counts) in table.controls.aggregates[$index]">
-            {{ v }}: {{ counts }}
+            <span ng-if="v === ''"><em>Empty</em>:</span>
+            <span ng-if="v !== ''">{{ v }}:</span>
+            {{ counts }}
           </li>
         </ul>
       </span>
