@@ -66,6 +66,31 @@
           ></span><span class="glyphicon glyphicon-chevron-down" ng-if="!table.controls.sort_asc"
           ></span></a>
       </span>
+
+      <span ng-if="table.controls.filters[$index]" ng-init="columnIndex=$index">
+        <span ng-if="table.controls.filtered[$index]">
+          ({{ table.controls.filtered[$index] }})
+        </span>
+        <span class="dropdown">
+          <span class="dropdown-toggle" data-toggle="dropdown">
+            <a href="javascript:void(0);"><span class="glyphicon glyphicon-search"></span></a>
+          </span>
+          <ul class="dropdown-menu" role="menu">
+            <li><a href="javascript:void(0);" ng-click="table.filter(columnIndex)"
+                 ><em>All</em></a></li>
+            <li ng-repeat="value in table.controls.filters[$index]">
+              <a href="javascript:void(0);" ng-click="table.filter(columnIndex, value)"
+               ><span ng-if="value === ''"
+                 >&nbsp;</span><span ng-if="value">{{ value }}</span></a></li>
+          </ul>
+        </span>
+      </span>
+
+      <span ng-if="!table.controls.filters[$index]">
+        <a href="javascript:void(0);" ng-click="table.make_filter($index)"
+         ><span class="glyphicon glyphicon-repeat"></span></a>
+      </span>
+
     </th>
   </tr>
 
