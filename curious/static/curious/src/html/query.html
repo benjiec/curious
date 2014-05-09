@@ -37,9 +37,9 @@
       <div class="dropdown-menu panel panel-default pull-right help">
         <div class="panel-body">
           Click on column header to sort. Click on
-          <span class="glyphicon glyphicon-repeat"></span>
-          to dynamically create a filter for the column, and then click on
           <span class="glyphicon glyphicon-search"></span>
+          to dynamically create a filter for the column, and then click on
+          <span class="glyphicon glyphicon-search"></span> again
           to use filter. Click on
           <span class="glyphicon glyphicon-stats"></span>
           to see aggregate counts of values in the column, after applying
@@ -110,9 +110,15 @@
         </span>
       </span>
 
-      <span ng-if="!table.controls.filters[$index]">
+      <span ng-if="!table.controls.filters[$index]" class="dropdown">
         <a href="javascript:void(0);" ng-click="table.make_filter($index)"
-         ><span class="glyphicon glyphicon-repeat"></span></a>
+           data-toggle="dropdown"
+         ><span class="glyphicon glyphicon-search"></span></a>
+        <div class="dropdown-menu panel panel-default">
+          <div class="panel-body">
+            Building filter. Click on icon again to use filter ...
+          </div>
+        </div>
       </span>
 
       <span ng-if="table.controls.filters[$index]" class="dropdown">
