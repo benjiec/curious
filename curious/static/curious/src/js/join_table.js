@@ -152,10 +152,23 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
         var unfetched = unfetched.slice(GET_BATCH);
         outstanding_fetches += 1;
         get_objects_f(model, tofetch, function(results) {
-          // console.log('fetching '+tofetch.length);
+          // console.log('parsing '+results.objects.length);
           outstanding_fetches -= 1;
-          for (var i=0; i<results.length; i++) {
-            var obj_data = results[i];
+          var fields = results.fields;
+          for (var i=0; i<results.objects.length; i++) {
+            var obj_data = {};
+            var values = results.objects[i];
+            for (var j=0; j<fields.length; j++) {
+              obj_data[fields[j]] = values[j];
+              if(Object.prototype.toString.call( values[j] ) === '[object Array]') {
+                obj_data[fields[j]] = {
+                  model: values[j][0],
+                  id: values[j][1],
+                  __str__: values[j][2],
+                  url: values[j][3]
+                }
+              }
+            }
             add_object_data(model, obj_data);
             if (cb_data === undefined && cb) {
               cb_data = obj_data;

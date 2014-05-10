@@ -1,5 +1,6 @@
 import json
 import types
+import time
 from django.core.cache import cache
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignKey
@@ -38,6 +39,39 @@ class ModelView(JSONView):
         d['relationships'].append(f)
     return d
 
+  @staticmethod
+  def objects_to_dict(objects):
+    if len(objects) == 0:
+      return dict(fields=[], objects=[])
+
+    fields = []
+    fk = []
+    obj = objects[0]
+    for f in obj._meta.fields:
+      fields.append(f.column)
+      fk.append(f.name if type(f) == ForeignKey else None)
+
+    packed = []
+    for obj in objects:
+      values = []
+      for column, fk_name in zip(fields, fk):
+        value = getattr(obj, column)
+        if not type(value) in (long, int, float, bool, types.NoneType):
+          value = unicode(value)
+        if fk_name is not None:
+          v = getattr(obj, fk_name)
+          if v is not None:
+            model_name = model_registry.getname(v.__class__)
+            try:
+              url = model_registry.geturl(model_name, v)
+            except:
+              url = None
+            value = (model_name, v.pk, str(v), url)
+        values.append(value)
+      packed.append(values)
+
+    return dict(fields=fields, objects=packed)
+
   def get(self, request, model_name):
     try:
       cls = model_registry.getclass(model_name)
@@ -45,6 +79,7 @@ class ModelView(JSONView):
       return self._error(404, "Unknown model '%s': %s" % (model_name, str(e)))
     return self._return(200, ModelView.model_to_dict(cls))
 
+  @report_time
   def post(self, request, model_name):
     """
     Fetch objects in batch.
@@ -63,8 +98,13 @@ class ModelView(JSONView):
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
 
+    t = time.time()
     r = cls.objects.filter(id__in=data['ids'])
-    r = [ObjectView.object_to_dict(obj) for obj in r]
+    r = list(r)
+    print 'fetch %.2f' % (time.time()-t,)
+    t = time.time()
+    r = ModelView.objects_to_dict(r)
+    print ' pack %.2f' % (time.time()-t,)
     return self._return(200, r)
 
 
