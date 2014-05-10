@@ -43,7 +43,7 @@ def mk_filter_function(filters):
           elif _filter['method'] == 'min':
             f = Min(_filter['field'])
           q = q.annotate(f)
-    return q
+    return q.only('id')
   return apply_filters
 
 

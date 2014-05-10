@@ -2,6 +2,7 @@ from django.test import TestCase
 from curious import model_registry
 from curious.query import Query
 from curious_tests.models import Blog, Entry, Author
+from curious_tests import assertQueryResultsEqual
 import curious_tests.models
 
 class TestSubQueries(TestCase):
@@ -37,15 +38,15 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) Blog.entry_set, Entry.authors' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
-                                         (self.entries[1], self.blogs[0].pk),
-                                         (self.entries[2], self.blogs[0].pk)])
-    self.assertItemsEqual(result[0][1], [(self.authors[0], self.entries[0].pk),
-                                         (self.authors[1], self.entries[0].pk),
-                                         (self.authors[1], self.entries[1].pk),
-                                         (self.authors[2], self.entries[1].pk),
-                                         (self.authors[2], self.entries[2].pk),
-                                         (self.authors[0], self.entries[2].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
+                                                 (self.entries[1], self.blogs[0].pk),
+                                                 (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][1], [(self.authors[0], self.entries[0].pk),
+                                                 (self.authors[1], self.entries[0].pk),
+                                                 (self.authors[1], self.entries[1].pk),
+                                                 (self.authors[2], self.entries[1].pk),
+                                                 (self.authors[2], self.entries[2].pk),
+                                                 (self.authors[0], self.entries[2].pk)])
     self.assertEquals(len(result[0]), 2)
     self.assertEquals(result[1], Author)
 
@@ -53,19 +54,19 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) (Blog.entry_set) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.blogs[0], self.blogs[0].pk)])
-    self.assertItemsEqual(result[0][1], [(self.entries[0], self.blogs[0].pk),
-                                         (self.entries[1], self.blogs[0].pk),
-                                         (self.entries[2], self.blogs[0].pk)])
-    self.assertItemsEqual(result[0][2], [(self.entries[0], self.entries[0].pk),
-                                         (self.entries[1], self.entries[0].pk),
-                                         (self.entries[2], self.entries[0].pk),
-                                         (self.entries[0], self.entries[1].pk),
-                                         (self.entries[1], self.entries[1].pk),
-                                         (self.entries[2], self.entries[1].pk),
-                                         (self.entries[0], self.entries[2].pk),
-                                         (self.entries[1], self.entries[2].pk),
-                                         (self.entries[2], self.entries[2].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][1], [(self.entries[0], self.blogs[0].pk),
+                                                 (self.entries[1], self.blogs[0].pk),
+                                                 (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][2], [(self.entries[0], self.entries[0].pk),
+                                                 (self.entries[1], self.entries[0].pk),
+                                                 (self.entries[2], self.entries[0].pk),
+                                                 (self.entries[0], self.entries[1].pk),
+                                                 (self.entries[1], self.entries[1].pk),
+                                                 (self.entries[2], self.entries[1].pk),
+                                                 (self.entries[0], self.entries[2].pk),
+                                                 (self.entries[1], self.entries[2].pk),
+                                                 (self.entries[2], self.entries[2].pk)])
     self.assertEquals(len(result[0]), 3)
     self.assertEquals(result[1], Entry)
 
@@ -73,9 +74,9 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) +(Blog.entry_set) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
-                                         (self.entries[1], self.blogs[0].pk),
-                                         (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
+                                                 (self.entries[1], self.blogs[0].pk),
+                                                 (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(len(result[0]), 1)
     self.assertEquals(result[1], Entry)
 

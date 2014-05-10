@@ -2,6 +2,7 @@ from django.test import TestCase
 from curious import model_registry
 from curious.query import Query
 from curious_tests.models import Blog, Entry, Author
+from curious_tests import assertQueryResultsEqual
 import curious_tests.models
 
 class TestQueryFilters(TestCase):
@@ -38,45 +39,45 @@ class TestQueryFilters(TestCase):
     qs = 'Blog(%s) Blog.authors(name__icontains="Smith")' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.authors[0], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.authors[0], self.blogs[0].pk)])
     self.assertEquals(result[1], Author)
 
   def test_explicit_filter(self):
     qs = 'Blog(%s) Blog.authors.filter(name__icontains="Smith")' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.authors[0], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.authors[0], self.blogs[0].pk)])
     self.assertEquals(result[1], Author)
 
   def test_explicit_exclude(self):
     qs = 'Blog(%s) Blog.authors.exclude(name__icontains="Smith")' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.authors[1], self.blogs[0].pk),
-                                         (self.authors[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.authors[1], self.blogs[0].pk),
+                                                 (self.authors[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Author)
 
   def test_implicit_filter_followed_by_explicit_filter(self):
     qs = 'Blog(%s) Blog.authors(name__icontains="Jo").exclude(name__icontains="Smith")' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.authors[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.authors[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Author)
 
   def test_explicit_chained_filters(self):
     qs = 'Blog(%s) Blog.authors.filter(name__icontains="Jo").exclude(name__icontains="Smith")' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.authors[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.authors[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Author)
 
   def test_explicit_count_and_filter(self):
     qs = 'Blog(%s) Blog.entry_set.count(authors).filter(authors__count=2)' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
-                                         (self.entries[1], self.blogs[0].pk),
-                                         (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
+                                                 (self.entries[1], self.blogs[0].pk),
+                                                 (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)
 
     qs = 'Blog(%s) Blog.entry_set.count(authors).filter(authors__count=1)' % self.blogs[0].pk
@@ -89,6 +90,6 @@ class TestQueryFilters(TestCase):
     query = Query(qs)
     result = query()
     print result
-    self.assertItemsEqual(result[0][0], [(self.entries[1], self.blogs[0].pk),
-                                         (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[1], self.blogs[0].pk),
+                                                 (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)

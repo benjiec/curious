@@ -145,9 +145,13 @@ class Query(object):
     filters = step['filters']
 
     # check if type matches existing object type
-    if len(obj_src) and type(obj_src[0][0]) != model_registry.getclass(model):
-      raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
-                      (model, type(obj_src[0][0])))
+    if len(obj_src):
+      t = type(obj_src[0][0])
+      if t._deferred:
+        t = t.__base__
+      if t != model_registry.getclass(model):
+        raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
+                        (model, type(obj_src[0][0])))
 
     step_f = model_registry.getattr(model, method)
 
@@ -239,7 +243,11 @@ class Query(object):
 
     if more_results:
       res.append(obj_src)
-    return res, obj_src[0][0].__class__
+
+    t = obj_src[0][0].__class__
+    if t._deferred:
+      t = t.__base__
+    return res, t
 
 
   def __call__(self):

@@ -1,6 +1,7 @@
 from django.test import TestCase
 from curious.graph import traverse
 from curious_tests.models import Blog, Entry, Author
+from curious_tests import assertQueryResultsEqual
 
 class TestFunc(TestCase):
 
@@ -28,14 +29,14 @@ class TestFunc(TestCase):
 
   def test_can_traverse_via_function_and_returns_traversed_pair(self):
     authors = traverse(self.blogs, Blog.authors)
-    self.assertItemsEqual(authors, Blog.authors(self.blogs))
+    assertQueryResultsEqual(self, authors, Blog.authors(self.blogs))
 
   def test_can_traverse_via_function_with_filter(self):
     f = dict(method='filter', kwargs=dict(name__icontains='Smith'))
     authors = traverse(self.blogs, Blog.authors, filters=[f])
-    self.assertItemsEqual(authors, [x for x in Blog.authors(self.blogs) if 'Smith' in x[0].name])
+    assertQueryResultsEqual(self, authors, [x for x in Blog.authors(self.blogs) if 'Smith' in x[0].name])
 
   def test_can_traverse_via_function_with_exclusions(self):
     f = dict(method='exclude', kwargs=dict(name__icontains='Smith'))
     authors = traverse(self.blogs, Blog.authors, filters=[f])
-    self.assertItemsEqual(authors, [x for x in Blog.authors(self.blogs) if 'Smith' not in x[0].name])
+    assertQueryResultsEqual(self, authors, [x for x in Blog.authors(self.blogs) if 'Smith' not in x[0].name])

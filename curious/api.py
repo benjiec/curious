@@ -119,6 +119,8 @@ class QueryView(JSONView):
     results = []
     for obj_src in res:
       model = type(obj_src[0][0])
+      if model._deferred:
+        model = model.__base__
       model_name = model_registry.getname(model)
       d = {'model': model_name,
            'objects': [(obj.pk, model_registry.geturl(model_name, obj), src) for obj, src in obj_src]

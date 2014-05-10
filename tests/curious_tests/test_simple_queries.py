@@ -2,6 +2,7 @@ from django.test import TestCase
 from curious import model_registry
 from curious.query import Query
 from curious_tests.models import Blog, Entry, Author
+from curious_tests import assertQueryResultsEqual
 import curious_tests.models
 
 class TestSimpleQueries(TestCase):
@@ -37,25 +38,28 @@ class TestSimpleQueries(TestCase):
     qs = 'Entry(%s)' % self.entries[0].pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([[(self.entries[0], self.entries[0].pk)]], Entry))
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.entries[0].pk)])
+    self.assertEquals(result[1], Entry)
 
   def test_query_starting_with_filter(self):
     qs = 'Entry(id=%s)' % self.entries[0].pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([[(self.entries[0], self.entries[0].pk)]], Entry))
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.entries[0].pk)])
+    self.assertEquals(result[1], Entry)
 
   def test_query_traversing_to_fk_object(self):
     qs = 'Entry(%s) Entry.blog' % self.entries[0].pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([[(self.blogs[0], self.entries[0].pk)]], Blog))
+    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], self.entries[0].pk)])
+    self.assertEquals(result[1], Blog)
   
   def test_query_traversing_from_fk_objects(self):
     qs = 'Blog(%s) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
                                          (self.entries[1], self.blogs[0].pk),
                                          (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)
@@ -64,7 +68,7 @@ class TestSimpleQueries(TestCase):
     qs = 'Blog(%s) Blog.entry_set Entry.authors' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.authors[0], self.blogs[0].pk),
+    assertQueryResultsEqual(self, result[0][0], [(self.authors[0], self.blogs[0].pk),
                                          (self.authors[1], self.blogs[0].pk),
                                          (self.authors[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Author)
@@ -73,7 +77,7 @@ class TestSimpleQueries(TestCase):
     qs = 'Blog(%s) Blog.authors Author.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
                                          (self.entries[1], self.blogs[0].pk),
                                          (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)
@@ -82,7 +86,7 @@ class TestSimpleQueries(TestCase):
     qs = 'Blog(%s) Blog.authors(name__icontains="Smith") Author.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
                                          (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)
 
@@ -92,7 +96,7 @@ class TestSimpleQueries(TestCase):
     result = query()
     # should return all entries, since at least one author in each entry does
     # not have "Smith"
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
                                          (self.entries[1], self.blogs[0].pk),
                                          (self.entries[2], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)
@@ -101,6 +105,6 @@ class TestSimpleQueries(TestCase):
     query = Query(qs)
     result = query()
     # should omit last entry, since both authors for that entry has Jo in their names
-    self.assertItemsEqual(result[0][0], [(self.entries[0], self.blogs[0].pk),
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
                                          (self.entries[1], self.blogs[0].pk)])
     self.assertEquals(result[1], Entry)

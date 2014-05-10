@@ -1,6 +1,7 @@
 from django.test import TestCase
 from curious.graph import traverse
 from curious_tests.models import Blog, Entry
+from curious_tests import assertQueryResultsEqual
 
 class TestFK(TestCase):
 
@@ -25,38 +26,38 @@ class TestFK(TestCase):
 
   def test_can_traverse_to_fk_objects_and_returns_traversed_pair(self):
     blogs = traverse(self.entries, Entry.blog)
-    self.assertItemsEqual(blogs, [(self.blogs[0], self.entries[0].pk),
-                                  (self.blogs[0], self.entries[1].pk),
-                                  (self.blogs[0], self.entries[2].pk),
-                                  (self.blogs[1], self.entries[3].pk)])
+    assertQueryResultsEqual(self, blogs, [(self.blogs[0], self.entries[0].pk),
+                                          (self.blogs[0], self.entries[1].pk),
+                                          (self.blogs[0], self.entries[2].pk),
+                                          (self.blogs[1], self.entries[3].pk)])
 
   def test_can_traverse_to_fk_objects_with_filter(self):
     f = dict(method='filter', kwargs=dict(name__icontains='graph'))
     blogs = traverse(self.entries, Entry.blog, filters=[f])
-    self.assertItemsEqual(blogs, [(self.blogs[1], self.entries[3].pk)])
+    assertQueryResultsEqual(self, blogs, [(self.blogs[1], self.entries[3].pk)])
 
   def test_can_traverse_to_fk_objects_with_exclusions(self):
     f = dict(method='exclude', kwargs=dict(name__icontains='graph'))
     blogs = traverse(self.entries, Entry.blog, filters=[f])
-    self.assertItemsEqual(blogs, [(self.blogs[0], self.entries[0].pk),
-                                  (self.blogs[0], self.entries[1].pk),
-                                  (self.blogs[0], self.entries[2].pk)])
+    assertQueryResultsEqual(self, blogs, [(self.blogs[0], self.entries[0].pk),
+                                          (self.blogs[0], self.entries[1].pk),
+                                          (self.blogs[0], self.entries[2].pk)])
 
   def test_can_traverse_from_fk_objects_and_returns_traversed_pair(self):
     entries = traverse(self.blogs, Blog.entry_set)
-    self.assertItemsEqual(entries, [(self.entries[0], self.blogs[0].pk),
-                                    (self.entries[1], self.blogs[0].pk),
-                                    (self.entries[2], self.blogs[0].pk),
-                                    (self.entries[3], self.blogs[1].pk)])
+    assertQueryResultsEqual(self, entries, [(self.entries[0], self.blogs[0].pk),
+                                            (self.entries[1], self.blogs[0].pk),
+                                            (self.entries[2], self.blogs[0].pk),
+                                            (self.entries[3], self.blogs[1].pk)])
 
   def test_can_traverse_from_fk_objects_with_filter(self):
     f = dict(method='filter', kwargs=dict(headline__icontains='graph'))
     entries = traverse(self.blogs, Blog.entry_set, filters=[f])
-    self.assertItemsEqual(entries, [(self.entries[2], self.blogs[0].pk),
-                                    (self.entries[3], self.blogs[1].pk)])
+    assertQueryResultsEqual(self, entries, [(self.entries[2], self.blogs[0].pk),
+                                            (self.entries[3], self.blogs[1].pk)])
 
   def test_can_traverse_from_fk_objects_with_exclusions(self):
     f = dict(method='exclude', kwargs=dict(headline__icontains='graph'))
     entries = traverse(self.blogs, Blog.entry_set, filters=[f])
-    self.assertItemsEqual(entries, [(self.entries[0], self.blogs[0].pk),
-                                    (self.entries[1], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, entries, [(self.entries[0], self.blogs[0].pk),
+                                            (self.entries[1], self.blogs[0].pk)])
