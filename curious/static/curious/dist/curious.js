@@ -207,9 +207,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
                 }
               }
             }
-            console.log('parsing')
-            console.log(results);
-            console.log(obj_data);
             add_object_data(model, obj_data);
             if (cb_data === undefined && cb) {
               cb_data = obj_data;
