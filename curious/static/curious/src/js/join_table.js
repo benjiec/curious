@@ -318,6 +318,9 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   }
 
   function make_filter(column_index) {
+    // can only filter if we have all the data
+    if (outstanding_fetches > 0) { return; }
+
     var attr = tbl_attrs[column_index].name;
 
     var colFilter = PourOver.Filter.extend({
