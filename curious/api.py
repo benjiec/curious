@@ -1,6 +1,5 @@
 import json
 import types
-import time
 from django.core.cache import cache
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignKey
@@ -98,13 +97,15 @@ class ModelView(JSONView):
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
 
-    t = time.time()
-    r = cls.objects.filter(id__in=data['ids'])
-    r = list(r)
-    print 'fetch %.2f' % (time.time()-t,)
-    t = time.time()
-    r = ModelView.objects_to_dict(r)
-    print ' pack %.2f' % (time.time()-t,)
+    fks = []
+    for f in cls._meta.fields:
+      if type(f) == ForeignKey:
+        fks.append(f.name)
+
+    q = cls.objects.filter(id__in=data['ids'])
+    if len(fks) > 0:
+      q = q.select_related(*fks)
+    r = ModelView.objects_to_dict(list(q))
     return self._return(200, r)
 
 
