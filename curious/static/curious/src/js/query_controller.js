@@ -8,6 +8,8 @@ function QueryController($scope, $http) {
     $scope.search_error = undefined;
     $scope.last_model = undefined;
     $scope.last_model_rels = [];
+    $scope.computed_on = undefined;
+    $scope.computed_since = undefined;
     $scope.table = undefined;
     $scope.csv = false;
   }
@@ -66,6 +68,8 @@ function QueryController($scope, $http) {
       else {
         $scope.success = true;
         if (res.last_model) { $scope.last_model = res.last_model; }
+        if (res.computed_on) { $scope.computed_on = res.computed_on; }
+        if (res.computed_since) { $scope.computed_since = res.computed_since; }
         if (res.results.length > 0) {
           get_model($scope.last_model, function(res, error) {
             if (res) { if (res.relationships) { $scope.last_model_rels = res.relationships; } }

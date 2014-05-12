@@ -9,6 +9,10 @@
 
 <div ng-if="completed && success && last_model">
 
+<p ng-if="computed_since">
+  Results from {{ computed_on }}, {{ computed_since }} - use "Refresh" to get latest results
+</p>
+
 <div id="results-header">
   <div ng-if="!csv">
     <span class="page-summary">

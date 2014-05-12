@@ -1,6 +1,7 @@
 # core django stuff
 Django == 1.6
 django-nose
+humanize
 
 # parser
 parsimonious == 0.5

@@ -1,5 +1,7 @@
 import json
 import types
+from datetime import datetime
+from humanize import naturaltime
 from django.core.cache import cache
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignKey
@@ -148,7 +150,7 @@ class ObjectView(JSONView):
 class QueryView(JSONView):
 
   def get_query_results(self, query, force):
-    k = hash(query.query_string)
+    k = hash('v%d_%s' % (2, query.query_string))
     v = cache.get(k)
     if v is None or force:
       v = self.run_query(query)
@@ -168,9 +170,11 @@ class QueryView(JSONView):
           }
       results.append(d)
     if last_model is not None:
-      return dict(last_model=model_registry.getname(last_model), results=results)
+      return dict(last_model=model_registry.getname(last_model),
+                  results=results, computed_on=datetime.now())
     else:
-      return dict(last_model=None, results=results)
+      return dict(last_model=None,
+                  results=results, computed_on=datetime.now())
 
   @report_time
   def get(self, request):
@@ -196,6 +200,11 @@ class QueryView(JSONView):
       import traceback
       traceback.print_exc()
       return self._error(400, str(e))
+
+    t = datetime.now()-results['computed_on']
+    if t.seconds > 300:
+      results['computed_since'] = str(naturaltime(results['computed_on']))
+    results['computed_on'] = str(results['computed_on'])
 
     # print results
     return self._return(200, results)
