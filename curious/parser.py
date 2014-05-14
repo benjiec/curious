@@ -1,5 +1,10 @@
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
+
+from time import mktime
+from datetime import datetime
+import parsedatetime
+
 from .grammar import QUERY_PEG
 
 
@@ -172,7 +177,14 @@ class ASTBuilder(NodeVisitor):
   def visit_float(self, node, _):
     return float(node.text)
 
-  def visit_string(self, node, s):
+  def visit_string(self, node, (t, s)):
+    if type(t) == list:
+      c = parsedatetime.Calendar()
+      t = c.parse(s)
+      return datetime.fromtimestamp(mktime(t[0]))
+    return s
+
+  def visit_q_string(self, node, s):
     return s[0]
 
   def visit_dq_string(self, node, (q0, v, q1)):

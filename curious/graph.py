@@ -19,16 +19,19 @@ def mk_filter_function(filters):
     if filters is not None:
       if type(q) != QuerySet:
         raise Exception('Can only apply filters to queryset objects')
+
       for _filter in filters:
         if 'method' not in _filter or\
            _filter['method'] not in ['exclude', 'filter',
                                      'count', 'max', 'min', 'sum', 'avg']:
           raise Exception('Missing or unknown method in filter')
+
         if _filter['method'] in ['exclude', 'filter']:
           if 'kwargs' not in _filter:
             raise Exception('Missing kwargs for filter')
           kwargs = _filter['kwargs']
           q = getattr(q, _filter['method'])(**kwargs)
+
         else:
           if 'field' not in _filter:
             raise Exception('Missing field for aggregation function')
@@ -43,6 +46,7 @@ def mk_filter_function(filters):
           elif _filter['method'] == 'min':
             f = Min(_filter['field'])
           q = q.annotate(f)
+
     return q.only('id')
   return apply_filters
 
