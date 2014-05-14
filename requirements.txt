@@ -9,7 +9,7 @@ humanize
 parsimonious == 0.5
 
 # parse humanized dates
-parsedatetime == 1.3
+parsedatetime == 1.2
 
 # assets
 webassets == 0.8
