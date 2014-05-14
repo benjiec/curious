@@ -297,7 +297,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     var sorters = _create_sorter(column_index);
     var sorter;
 
-    if (tbl_controls.sort_column && tbl_controls.sort_column === column_index) {
+    if (tbl_controls.sort_column !== undefined && tbl_controls.sort_column === column_index) {
       if (tbl_controls.sort_asc === false) {
         tbl_controls.sort_asc = true;
         sorter = sorters[0];
@@ -313,7 +313,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
       sorter = sorters[0];
     }
 
-    // console.log('sort '+sorter);
     tbl_view.setSort(sorter);
   }
 
