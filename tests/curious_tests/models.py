@@ -39,6 +39,7 @@ class Entry(models.Model):
   blog = models.ForeignKey(Blog)
   headline = models.CharField(max_length=255)
   authors = models.ManyToManyField(Author)
+  response_to = models.ForeignKey('self', null=True, related_name='responses')
 
   def __unicode__(self):
     return self.headline
