@@ -48,9 +48,12 @@ class ModelView(JSONView):
     fields = []
     fk = []
     obj = objects[0]
+    excludes = model_registry.getexcludes(model_registry.getname(obj.__class__))
+
     for f in obj._meta.fields:
-      fields.append(f.column)
-      fk.append(f.name if type(f) == ForeignKey else None)
+      if f.column not in excludes:
+        fields.append(f.column)
+        fk.append(f.name if type(f) == ForeignKey else None)
 
     packed = []
     for obj in objects:

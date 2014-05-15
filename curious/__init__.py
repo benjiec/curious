@@ -7,6 +7,7 @@ class ModelRegistry(object):
   def __init__(self):
     self.__name_shortcuts = {}
     self.__models = {}
+    self.__model_field_excludes = {}
     self.__model_url_funcs = {}
 
   @staticmethod
@@ -60,6 +61,12 @@ class ModelRegistry(object):
     model_name = self.translate_name(name)
     self.__model_url_funcs[model_name] = f
 
+  def add_model_field_exclude(self, name, f):
+    model_name = self.translate_name(name)
+    if model_name not in self.__model_field_excludes:
+      self.__model_field_excludes[model_name] = []
+    self.__model_field_excludes[model_name].append(f)
+
   @property
   def model_names(self):
     return [k for k in self.__models]
@@ -87,6 +94,12 @@ class ModelRegistry(object):
     if model_name in self.__model_url_funcs:
       return self.__model_url_funcs[model_name](obj)
     return None
+
+  def getexcludes(self, name):
+    model_name = self.translate_name(name)
+    if model_name in self.__model_field_excludes:
+      return self.__model_field_excludes[model_name]
+    return []
 
   def getattr(self, name, method):
     cls = self.getclass(name)
