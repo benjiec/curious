@@ -230,7 +230,7 @@ class Query(object):
         obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
 
       if 'subquery' in step:
-        # print 'subquery %s' % step
+        print 'subquery %s' % step
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
         if 'join' in step and step['join'] is True:
           # add subquery result to results

@@ -13,7 +13,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
   var GET_BATCH = 500;  // how many objects to fetch from server at a time
   var DEFAULT_PAGE_SIZE = 100;
-  var AUTO_FETCH_THRESHOLD = 3000; // auto fetch when total is below this threshold
+  var PARTIAL_FETCH = 3000; // auto fetch all when total is below this threshold
 
   var entries = [];
   var models = [];
@@ -25,6 +25,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   var tbl_view = undefined;
   var tbl_csv = undefined;
   var tbl_controls = {};
+  var partial_fetch = undefined;
   var pourover_collection = undefined;
   var pourover_sorters = undefined;
   var outstanding_fetches = 0;
@@ -240,7 +241,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     pourover_sorters = {};
     if (page_size === undefined) { page_size = DEFAULT_PAGE_SIZE; }
     tbl_view = new PourOver.View('default', pourover_collection, {page_size: page_size});
-    tbl_controls = {fetched: true};
+    tbl_controls = {};
   }
 
   function next_page() { tbl_view.page(1); }
@@ -292,7 +293,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     }
 
     // can only sort if we have all the data
-    if (outstanding_fetches > 0) { return; }
+    if (partial_fetch !== undefined || outstanding_fetches > 0) { return; }
 
     // dynamically create a sorter if none exists for that column
     var sorters = _create_sorter(column_index);
@@ -319,7 +320,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
   function make_filter(column_index) {
     // can only filter if we have all the data
-    if (outstanding_fetches > 0) { return; }
+    if (partial_fetch !== undefined || outstanding_fetches > 0) { return; }
 
     var attr = tbl_attrs[column_index].name;
 
@@ -457,7 +458,9 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
       sort: sort,
       make_filter: make_filter,
       filter: filter,
-      aggregate: aggregate
+      aggregate: aggregate,
+      partial_fetch: partial_fetch,
+      fetchAll: fetch_all
     });
   }
 
@@ -477,6 +480,15 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     }
   }
 
+  function fetch_all() {
+    partial_fetch = undefined;
+    update_controller();
+
+    for (var i=0; i<models.length; i++) {
+      if (models[i].attrs.length > 1) { show_object_attrs(i); }
+    }
+  }
+
   // show attributes for a query's objects
   function show_object_attrs(query_idx) {
     if (models[query_idx].loaded == true) {
@@ -490,16 +502,19 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
     // fetch objects from server
     var ids = [];
-    for (var i=0; i<entries.length; i++) {
+    var nfetch = entries.length;
+    if (partial_fetch !== undefined) { nfetch = partial_fetch; }
+    if (nfetch > entries.length) { nfetch = entries.length; }
+    for (var i=0; i<nfetch; i++) {
       var entry = entries[i][query_idx];
       ids.push(entry.ptr.id.value);
       // console.log('will fetch '+entry.ptr.id.value);
     }
     get_objects(models[query_idx].model, ids, function(data) {
       update_model_attrs(query_idx, data);
-      models[query_idx].loaded = true;
+      if (partial_fetch === undefined) { models[query_idx].loaded = true; }
     }, function() {
-      console.log('all fetch completed');
+      // console.log('all fetch completed');
     });
   }
 
@@ -525,10 +540,10 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   }
 
   update_table(); // initialize table
-  tbl_controls.fetched = false;
+  if (entries.length > PARTIAL_FETCH) { partial_fetch = GET_BATCH; }
 
   // by default, fetch objects from last query
-  if (entries.length > 0 && entries[0].length > 0 && entries.length <= AUTO_FETCH_THRESHOLD) {
+  if (entries.length > 0 && entries[0].length > 0) {
     show_object_attrs(entries[0].length-1);
   }
 }
