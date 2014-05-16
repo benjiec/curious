@@ -11,6 +11,7 @@ from django.views.generic.base import View
 from curious import model_registry
 from .query import Query
 from .utils import report_time
+import time
 
 
 class JSONView(View):
@@ -151,13 +152,18 @@ class ObjectView(JSONView):
 
 
 class QueryView(JSONView):
+  # if query takes longer than this number of seconds, cache it
+  QUERY_TIME_CACHING_THRESHOLD = 10
 
   def get_query_results(self, query, force):
-    k = hash('v%d_%s' % (2, query.query_string))
+    k = hash('v%d_%s' % (3, query.query_string))
     v = cache.get(k)
     if v is None or force:
+      t = time.time()
       v = self.run_query(query)
-      cache.set(k, v, None)
+      t = time.time()-t
+      if t > QueryView.QUERY_TIME_CACHING_THRESHOLD:
+        cache.set(k, v, None)
     return v
 
   def run_query(self, query):
