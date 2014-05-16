@@ -12,6 +12,9 @@
 <p ng-if="computed_since">
   Results from {{ computed_on }}, {{ computed_since }} - use "Refresh" to get latest results
 </p>
+<p ng-if="table.controls.fetched == false">
+  Too many objects. To fetch data for all objects, click on a column header. May be slow.
+</p>
 
 <div id="results-header">
   <div ng-if="!csv">

@@ -13,6 +13,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
   var GET_BATCH = 500;  // how many objects to fetch from server at a time
   var DEFAULT_PAGE_SIZE = 100;
+  var AUTO_FETCH_THRESHOLD = 3000; // auto fetch when total is below this threshold
 
   var entries = [];
   var models = [];
@@ -239,7 +240,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     pourover_sorters = {};
     if (page_size === undefined) { page_size = DEFAULT_PAGE_SIZE; }
     tbl_view = new PourOver.View('default', pourover_collection, {page_size: page_size});
-    tbl_controls = {};
+    tbl_controls = {fetched: true};
   }
 
   function next_page() { tbl_view.page(1); }
@@ -524,7 +525,10 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   }
 
   update_table(); // initialize table
+  tbl_controls.fetched = false;
 
   // by default, fetch objects from last query
-  if (entries.length > 0 && entries[0].length > 0) { show_object_attrs(entries[0].length-1); }
+  if (entries.length > 0 && entries[0].length > 0 && entries.length <= AUTO_FETCH_THRESHOLD) {
+    show_object_attrs(entries[0].length-1);
+  }
 }
