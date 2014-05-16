@@ -55,10 +55,9 @@ class TestQueryCount(TestCase):
     self.assertEquals(len(blogs), TestQueryCount.N)
     self.assertEquals(len(connection.queries), 1)
 
-  def test_constant_number_of_queries_for_reverse_FK(self):
+  def test_single_query_for_reverse_FK(self):
     connection.use_debug_cursor = True
     connection.queries = []
     entries = traverse(self.blogs, Blog.entry_set)
     self.assertEquals(len(entries), TestQueryCount.N)
-    # Django uses an extra query, so requires 2 queries, but still not N
-    self.assertEquals(len(connection.queries), 2)
+    self.assertEquals(len(connection.queries), 1)

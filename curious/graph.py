@@ -6,12 +6,14 @@ these instances.
 """
 
 import types
+from django.db import connections, router
 from django.db.models.query import QuerySet
 from django.db.models import Count, Avg, Max, Min, Sum
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignRelatedObjectsDescriptor
 from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor
+from .utils import report_time
 
 
 def mk_filter_function(filters):
@@ -61,7 +63,7 @@ def _valid_django_rel(rel_obj_descriptor):
 
 # Use this attr of a query output object to determine the input object
 # producing the output object using the query.
-INPUT_ATTR_PREFIX = '_prefetch_related_val_'
+INPUT_ATTR_PREFIX = '_origin_'
 
 def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=False):
   """
@@ -91,34 +93,56 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
 
     # FK from instance to a related object
     elif type(rel_obj_descriptor) == ReverseSingleRelatedObjectDescriptor:
+      field = rel_obj_descriptor.field
+
+      rel_obj_attr = field.get_foreign_related_value
+      instance_attr = field.get_local_related_value
+      query = {'%s__in' % field.related_query_name(): instances}
+      rel_mgr = field.rel.to._default_manager
+      # If the related manager indicates that it should be used for related
+      # fields, respect that.
+      if getattr(rel_mgr, 'use_for_related_fields', False):
+        queryset = rel_mgr
+      else:
+        queryset = QuerySet(field.rel.to)
+      queryset = queryset.filter(**query).only('id')
+
       table = instances[0]._meta.db_table
-      related_table = rel_obj_descriptor.field.related_field.model._meta.db_table
-      #print 'starting with %s, related %s' % (table, related_table)
+      related_table = field.related_field.model._meta.db_table
       if table == related_table:
         # XXX hack: assuming django uses T2 for joining two tables of same name
         table = 'T2'
-      queryset = rel_obj_descriptor.get_prefetch_queryset(instances)[0]\
-                                   .extra(select={INPUT_ATTR_PREFIX: '%s.id' % table})
-      #print queryset.query
-      queryset._prefetch_done = True
+      queryset = queryset.extra(select={INPUT_ATTR_PREFIX: '%s.id' % table})
 
     # reverse FK from instance to related objects with FK to the instance
     elif type(rel_obj_descriptor) == ForeignRelatedObjectsDescriptor:
-      column = rel_obj_descriptor.related.field.column
-      table = instances[0]._meta.db_table
-      queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]\
-                                   .extra(select={INPUT_ATTR_PREFIX: '%s' % column})
-      queryset._prefetch_done = True
+      rel_field = rel_obj_descriptor.related.field
+      rel_obj_attr = rel_field.get_local_related_value
+      rel_column = rel_field.column
+
+      rel_model = rel_obj_descriptor.related.model
+      rel_mgr = rel_model._default_manager.__class__()
+      rel_mgr.model = rel_model
+
+      query = {'%s__in' % rel_field.name: instances}
+      queryset = rel_mgr.get_queryset().filter(**query).only('id')
+      queryset = queryset.extra(select={INPUT_ATTR_PREFIX: '%s' % rel_column})
 
     # M2M from instance to related objects
-    elif type(rel_obj_descriptor) == ReverseManyRelatedObjectsDescriptor:
-      queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
-      queryset._prefetch_done = True
+    elif type(rel_obj_descriptor) in (ReverseManyRelatedObjectsDescriptor, ManyRelatedObjectsDescriptor):
+      db = router.db_for_read(instance.__class__, instance=instance)
+      connection = connections[db]
 
-    # reverse M2M from instance to related objects
-    elif type(rel_obj_descriptor) == ManyRelatedObjectsDescriptor:
-      queryset = rel_obj_descriptor.__get__(instance).get_prefetch_queryset(instances)[0]
-      queryset._prefetch_done = True
+      mgr = rel_obj_descriptor.__get__(instance)
+      query = {'%s__in' % mgr.query_field_name: instances}
+      queryset = super(mgr.__class__, mgr).get_queryset().filter(**query).only('id')
+
+      fk = mgr.through._meta.get_field(mgr.source_field_name)
+      join_table = mgr.through._meta.db_table
+      qn = connection.ops.quote_name
+      queryset = queryset.extra(select=dict(
+        ('%s%s' % (INPUT_ATTR_PREFIX, f.attname),
+         '%s.%s' % (qn(join_table), qn(f.column))) for f in fk.local_related_fields))
 
     # if you just do 'if queryset', that triggers query execution because
     # python checks length of the enumerable. to prevent query execution, check
@@ -131,6 +155,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
   return get_related_objects
 
 
+@report_time
 def traverse(nodes, attr, filters=None):
   """
   Traverse one relationship on list of nodes. Returns output, input tuple
@@ -147,6 +172,11 @@ def traverse(nodes, attr, filters=None):
 
   f = get_related_obj_accessor(attr, nodes[0])
   nodes = f(nodes, filters=filters)
+
+  @report_time
+  def _execute(nodes):
+    return list(nodes)
+  nodes = _execute(nodes)
 
   if len(nodes) == 0:
     return []

@@ -1,6 +1,7 @@
-from .parser import Parser
 from curious import model_registry
 from curious.graph import traverse, mk_filter_function
+from .parser import Parser
+from .utils import report_time
 
 
 class Query(object):
@@ -63,12 +64,22 @@ class Query(object):
 
 
   @staticmethod
-  def _graph_step(obj_src, step_f, filters):
+  @report_time
+  def _graph_step(obj_src, model, step_f, filters):
     """
     Traverse one step on the graph. Takes in and returns arrays of output,
     input object tuples. The input objects in the tuples are from start of the
     query, not start of this step.
     """
+
+    # check if type matches existing object type
+    if len(obj_src):
+      t = type(obj_src[0][0])
+      if t._deferred:
+        t = t.__base__
+      if t != model_registry.getclass(model):
+        raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
+                        (model, type(obj_src[0][0])))
 
     next_obj_src = traverse([obj for obj, src in obj_src], step_f, filters)
 
@@ -89,13 +100,19 @@ class Query(object):
 
 
   @staticmethod
-  def _recursive_rel(obj_src, step_f, filters, need_terminal):
+  def _recursive_rel(obj_src, step):
     """
     Traverse a relationship recursively. Collected objects, either loop
     terminating objects or loop continuing objects. Returns arrays of output,
     input object tuples. The input objects in the tuples are from start of the
     query, not start of this step.
     """
+
+    model = step['model']
+    method = step['method']
+    filters = step['filters']
+    step_f = model_registry.getattr(model, method)
+    need_terminal = 'collect' in step and step['collect'] == 'terminal'
 
     collected = []
 
@@ -105,12 +122,12 @@ class Query(object):
         collected.append(tup)
 
     while len(obj_src) > 0:
-      next_obj_src = Query._graph_step(obj_src, step_f, filters)
+      next_obj_src = Query._graph_step(obj_src, model, step_f, filters)
 
       if need_terminal and (filters is None or filters == []):
         # traverse one step from last set of nodes
         src = [(t[0], t[0].pk) for t in obj_src]
-        progressed = Query._graph_step(src, step_f, filters)
+        progressed = Query._graph_step(src, model, step_f, filters)
         progressed = [t[1] for t in progressed]
         for tup in obj_src:
           # if we didn't progress, than collect
@@ -120,7 +137,7 @@ class Query(object):
 
       elif need_terminal:
         # get all reachable objects, w/o filtering
-        reachable = Query._graph_step(obj_src, step_f, None)
+        reachable = Query._graph_step(obj_src, model, step_f, None)
         for tup in reachable:
           if tup not in next_obj_src:
             if tup not in collected:
@@ -144,27 +161,15 @@ class Query(object):
     start of the query, not start of this step.
     """
 
-    model = step['model']
-    method = step['method']
-    filters = step['filters']
-
-    # check if type matches existing object type
-    if len(obj_src):
-      t = type(obj_src[0][0])
-      if t._deferred:
-        t = t.__base__
-      if t != model_registry.getclass(model):
-        raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
-                        (model, type(obj_src[0][0])))
-
-    step_f = model_registry.getattr(model, method)
-
     if 'recursive' not in step or step['recursive'] is False:
-      obj_src = Query._graph_step(obj_src, step_f, filters)
+      model = step['model']
+      method = step['method']
+      filters = step['filters']
+      step_f = model_registry.getattr(model, method)
+      obj_src = Query._graph_step(obj_src, model, step_f, filters)
 
     else:
-      need_terminal = 'collect' in step and step['collect'] == 'terminal'
-      obj_src = Query._recursive_rel(obj_src, step_f, filters, need_terminal)
+      obj_src = Query._recursive_rel(obj_src, step)
 
     # print '%s: %d' % (step, len(obj_src))
     return obj_src
@@ -239,6 +244,7 @@ class Query(object):
           obj_src = new_obj_src
 
       else:
+        print 'query: %s' % step
         obj_src = Query._rel_step(obj_src, step)
         more_results = True
 
