@@ -11,7 +11,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   //   get_objects_f  - function to fetch objects in batch, should take a model
   //                    and an ids list
 
-  var GET_BATCH = 500;  // how many objects to fetch from server at a time
+  var GET_BATCH = 300;  // how many objects to fetch from server at a time
   var DEFAULT_PAGE_SIZE = 100;
   var PARTIAL_FETCH = 3000; // auto fetch all when total is below this threshold
 

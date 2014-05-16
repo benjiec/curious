@@ -125,7 +125,12 @@
          ><span class="glyphicon glyphicon-search"></span></a>
         <div class="dropdown-menu panel panel-default">
           <div class="panel-body">
-            Loading data and building filter. Click on icon again to use filter ...
+            <p ng-if="table.partial_fetch !== undefined">
+              Filter option only available when all objects have been fetched.
+            </p>
+            <p ng-if="table.partial_fetch === undefined">
+              Loading data and building filter. Click on icon again to use filter ...
+            </p>
           </div>
         </div>
       </span>
