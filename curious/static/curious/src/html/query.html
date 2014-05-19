@@ -57,6 +57,10 @@
       </div>
     </div>
 
+    <div>
+      <a href="javascript:void(0);" ng-click="table.clearSort()">Reset Sort</a>
+    </div>
+
     <div id="recommended_rels" class="dropdown">
       <a data-toggle="dropdown" href="javascript:void(0);">Relations from {{ last_model }}</a>
       <ul class="rel-list dropdown-menu" role="menu">
@@ -85,14 +89,19 @@
   <tr class="success">
     <th class="id"></th>
     <th ng-repeat="attr in table.attrs track by $index" ng-if="attr.visible">
-      <a href="javascript:void(0);" ng-click="table.sort($index)" ng-if="table.controls.sort_column !== $index"
-       >{{ attr.name }}</a>
-      <span ng-if="table.controls.sort_column === $index">
+      <a href="javascript:void(0);" ng-click="table.sort($index)"
+         ng-if="table.controls.sort_columns.indexOf($index) < 0">{{ attr.name }}</a>
+
+      <span ng-if="table.controls.sort_columns.indexOf($index) >= 0">
         {{ attr.name }}
         <a href="javascript:void(0);" ng-click="table.sort($index)"
-         ><span class="glyphicon glyphicon-chevron-up" ng-if="table.controls.sort_asc"
-          ></span><span class="glyphicon glyphicon-chevron-down" ng-if="!table.controls.sort_asc"
-          ></span></a>
+         ><span class="glyphicon glyphicon-chevron-up"
+                ng-if="table.controls.sort_dirs[table.controls.sort_columns.indexOf($index)]"
+         ></span
+         ><span class="glyphicon glyphicon-chevron-down"
+                ng-if="!table.controls.sort_dirs[table.controls.sort_columns.indexOf($index)]"
+         ></span></a>
+        ({{ table.controls.sort_columns.indexOf($index)+1 }})
       </span>
 
       <span ng-if="table.controls.filters[$index]" ng-init="columnIndex=$index">
@@ -120,7 +129,7 @@
       </span>
 
       <span ng-if="!table.controls.filters[$index]" class="dropdown">
-        <a href="javascript:void(0);" ng-click="table.make_filter($index)"
+        <a href="javascript:void(0);" ng-click="table.makeFilter($index)"
            data-toggle="dropdown"
          ><span class="glyphicon glyphicon-search"></span></a>
         <div class="dropdown-menu panel panel-default">
