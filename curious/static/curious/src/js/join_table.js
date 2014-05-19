@@ -471,7 +471,11 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
       var old_attr = models[query_idx].attrs[0];
       var attrs = [];
       for (var a in object) { if (a !== 'id') { attrs.push({name: a, visible: true}); } }
-      attrs.sort(function(a, b) { return a.name-b.name; });
+      attrs.sort(function(a, b) {
+        if (a.name < b.name) { return -1; }
+        else if (a.name > b.name) { return 1; }
+        return 0;
+      });
       attrs.unshift(old_attr);
       models[query_idx].attrs = attrs;
       tbl_queries[query_idx].cols = attrs.length;
