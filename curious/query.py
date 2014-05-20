@@ -204,7 +204,7 @@ class Query(object):
 
 
   @staticmethod
-  def _query(objects, query):
+  def _query(objects, query, demux_first=True):
     """
     Executes a query. A query consists of one or more subqueries. Each subquery
     is an array of model relationships. In most cases the outputs of a subquery
@@ -219,7 +219,11 @@ class Query(object):
     res = []
     more_results = True
 
-    obj_src = [(obj, obj.pk) for obj in objects]
+    if demux_first is True:
+      obj_src = [(obj, obj.pk) for obj in objects]
+    else:
+      obj_src = [(obj, None) for obj in objects]
+
     for step in query:
       if len(obj_src) == 0:
         return [], None
@@ -254,9 +258,11 @@ class Query(object):
     if more_results:
       res.append(obj_src)
 
+    # last model
     t = obj_src[0][0].__class__
     if t._deferred:
       t = t.__base__
+
     return res, t
 
 
@@ -270,4 +276,4 @@ class Query(object):
     """
 
     objects = list(self.__get_objects())
-    return Query._query(objects, self.__steps)
+    return Query._query(objects, self.__steps, demux_first=False)

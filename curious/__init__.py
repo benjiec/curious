@@ -3,6 +3,15 @@ import django.db.models
 from .graph import _valid_django_rel
 
 
+def deferred_to_real(objs):
+  if len(objs) == 0:
+    return []
+  model = type(objs[0])
+  if model._deferred:
+    model = model.__base__
+  return model.objects.filter(pk__in=[obj.pk for obj in objs])
+
+
 class ModelRegistry(object):
   def __init__(self):
     self.__name_shortcuts = {}
