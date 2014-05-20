@@ -38,9 +38,9 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) Blog.entry_set, Entry.authors' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
-                                                 (self.entries[1], self.blogs[0].pk),
-                                                 (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
+                                                 (self.entries[1], None),
+                                                 (self.entries[2], None)])
     assertQueryResultsEqual(self, result[0][1], [(self.authors[0], self.entries[0].pk),
                                                  (self.authors[1], self.entries[0].pk),
                                                  (self.authors[1], self.entries[1].pk),
@@ -54,7 +54,7 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) (Blog.entry_set) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], None)])
     assertQueryResultsEqual(self, result[0][1], [(self.entries[0], self.blogs[0].pk),
                                                  (self.entries[1], self.blogs[0].pk),
                                                  (self.entries[2], self.blogs[0].pk)])
@@ -74,9 +74,9 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) +(Blog.entry_set) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blogs[0].pk),
-                                                 (self.entries[1], self.blogs[0].pk),
-                                                 (self.entries[2], self.blogs[0].pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
+                                                 (self.entries[1], None),
+                                                 (self.entries[2], None)])
     self.assertEquals(len(result[0]), 1)
     self.assertEquals(result[1], Entry)
 

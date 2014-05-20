@@ -43,7 +43,7 @@ class TestQueryFilters(TestCase):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL")' % self.blog.pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], self.blog.pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
 
   def test_recursive_traversal_gets_all_nodes_including_self(self):
@@ -52,10 +52,10 @@ class TestQueryFilters(TestCase):
     result = query()
     print result[0][0]
     assertQueryResultsEqual(self, result[0][0],
-                            [(self.entries[0], self.blog.pk),
-                              (self.entries[1], self.blog.pk),
-                              (self.entries[2], self.blog.pk),
-                              (self.entries[3], self.blog.pk),
+                            [(self.entries[0], None),
+                              (self.entries[1], None),
+                              (self.entries[2], None),
+                              (self.entries[3], None),
                             ])
     self.assertEquals(result[1], Entry)
 
@@ -63,7 +63,7 @@ class TestQueryFilters(TestCase):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") Entry.responses**' % self.blog.pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[3], self.blog.pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[3], None)])
     self.assertEquals(result[1], Entry)
 
   def test_recursive_search_for_terminal_with_filter_returns_first_non_matching_node(self):
@@ -71,7 +71,7 @@ class TestQueryFilters(TestCase):
           Entry.responses(headline__icontains="relational")**' % self.blog.pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[2], self.blog.pk)])
+    assertQueryResultsEqual(self, result[0][0], [(self.entries[2], None)])
     self.assertEquals(result[1], Entry)
 
   def test_cannot_recursive_search_using_relationship_to_different_model(self):

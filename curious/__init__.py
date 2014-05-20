@@ -4,11 +4,10 @@ from .graph import _valid_django_rel
 
 
 def deferred_to_real(objs):
-  if len(objs) == 0:
+  deferred_model = [type(obj) for obj in objs if type(obj)._deferred]
+  if len(deferred_model) == 0:
     return []
-  model = type(objs[0])
-  if model._deferred:
-    model = model.__base__
+  model = deferred_model[0].__base__
   return model.objects.filter(pk__in=[obj.pk for obj in objs])
 
 
