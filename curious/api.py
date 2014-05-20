@@ -164,6 +164,9 @@ class QueryView(JSONView):
       t = time.time()-t
       if t > QueryView.QUERY_TIME_CACHING_THRESHOLD:
         cache.set(k, v, None)
+      else:
+        # remove old cache if there are any
+        cache.set(k, None)
     return v
 
   def run_query(self, query):
