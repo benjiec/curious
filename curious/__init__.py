@@ -29,10 +29,11 @@ class ModelRegistry(object):
         try:
           if issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
             model_name = ModelRegistry.model_name(cls)
-            self.__models[model_name] = dict(cls=cls, allowed=[], disallowed=[])
-            if cls.__name__ not in self.__name_shortcuts:
-              self.__name_shortcuts[cls.__name__] = []
-            self.__name_shortcuts[cls.__name__].append(model_name)
+            if model_name not in self.__models:
+              self.__models[model_name] = dict(cls=cls, allowed=[], disallowed=[])
+              if cls.__name__ not in self.__name_shortcuts:
+                self.__name_shortcuts[cls.__name__] = []
+              self.__name_shortcuts[cls.__name__].append(model_name)
         except:
           pass
     else:
