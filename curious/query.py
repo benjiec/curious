@@ -199,14 +199,16 @@ class Query(object):
       result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
 
       if len(result_from_subq) > 0: # subquery has result
-        # if no modifier to subquery, or said should have subquery results ('+')
-        if having is None or having == '+':
+        # if no modifier to subquery, or said should have subquery results ('+' or '?')
+        if having is None or having in ('+', '?'):
           keep.append((obj, src))
 
       if len(result_from_subq) == 0: # no subquery result
-        # if said should not have subquery results ('-') or no modifier
-        if having == '-' or having is None:
+        # if said should not have subquery results ('-') or don't care ('?')
+        if having in ('-', '?'):
           keep.append((obj, src))
+          if having == '?':
+            subquery_res.append((None, obj.pk))
 
     return keep, subquery_res
 
@@ -249,7 +251,14 @@ class Query(object):
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
 
         if step['having'] is None or step['having'] == '?': 
-          if len(subquery_res) > 0:
+          # if there are no results at all, then skip
+          has_result = False
+          for obj, src in subquery_res:
+            if obj is not None:
+              has_result = True
+              break
+
+          if has_result:
             # add subquery result to results
             res.append((subquery_res, last_non_sub_index))
             # don't increase last_non_sub_index, so caller knows next query
@@ -268,9 +277,13 @@ class Query(object):
       res.append((obj_src, last_non_sub_index))
 
     # last model, can be None if left join and got no data
-    t = obj_src[0][0].__class__
-    if t._deferred:
-      t = t.__base__
+    t = None
+    for obj, src in obj_src:
+      if obj is not None:
+        t = obj.__class__
+        if t._deferred:
+          t = t.__base__
+        break
 
     return res, t
 
