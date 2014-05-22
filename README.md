@@ -40,7 +40,7 @@ How Curious Works
 -----------------
 
 
-Disadvantages
--------------
+Criticisms
+----------
 
-
+Esoteric query syntax; may be nice for programmers, but not for human. Sits in between fully customized UI with customized queries and raw SQL with high flexibility; does it make a DBA's job easier or have enough power to handle simple queries?
