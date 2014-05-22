@@ -15,13 +15,23 @@ Example
 Query Language
 --------------
 
+avg, sum, max, count.
+
 
 Configuring Curious
 -------------------
 
 
+Using Curious
+-------------
+
+Turn off CSRF. Deploy it as a Django app.
+
+
 Writing Customized Relationships
 --------------------------------
+
+Use filter and deferred to real functions.
 
 
 How Curious Works
