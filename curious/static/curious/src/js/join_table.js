@@ -34,13 +34,15 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
   // from results, construct entries table - joining results together
 
-  // for each result, build dict indexed by object id
+  // for each result, build dict indexed by from id
   for (var i=0; i<results.length; i++) {
     results[i].map = {}
     for (var j=0; j<results[i].objects.length; j++) {
       var obj = results[i].objects[j];
-      if (results[i].map[obj[0]] === undefined) { results[i].map[obj[0]] = []; }
-      results[i].map[obj[0]].push(obj);
+      if (obj[0] !== null) {
+        if (results[i].map[obj[2]] === undefined) { results[i].map[obj[2]] = []; }
+        results[i].map[obj[2]].push(obj);
+      }
     }
   }
 
@@ -52,22 +54,41 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   }
 
   var entries = [];
-  var last_column = results[results.length-1];
-  for (var i=0; i<last_column.objects.length; i++) {
-    entries.push([build_obj(results.length-1, last_column.objects[i])]);
+
+  // add first column
+  for (var i=0; i<results[0].objects.length; i++) {
+    entries.push([build_obj(0, results[0].objects[i])]);
   }
 
-  for (var col=results.length-2; col>=0; col--) {
+  // join rest of the columns
+  for (var col=1; col<results.length; col++) {
     var new_entries = [];
+    var column = results[col];
+    var join_index = column.join_index;
+
     for (var i=0; i<entries.length; i++) {
       var row = entries[i];
-      var last_from = row[0].from;
-      // index last_from in current column
-      var objs = results[col].map[last_from];
-      for (var j=0; j<objs.length; j++) {
-        var new_row = row.slice(0);
-        new_row.unshift(build_obj(col, objs[j]));
-        new_entries.push(new_row);
+      console.log('col '+col+', row '+i+', joins '+join_index)
+      console.log(row)
+
+      var join_pk = row[join_index].id;
+      var objs = column.map[join_pk];
+
+      if (objs !== undefined) {
+        for (var j=0; j<objs.length; j++) {
+          var new_row = row;
+          if (objs.length != 1) { new_row = row.slice(0); }
+          new_row.push(build_obj(col, objs[j]));
+          new_entries.push(new_row);
+          console.log('add row')
+          console.log(new_row)
+        }
+      }
+      else {
+        row.push(null);
+        new_entries.push(row);
+        console.log('add null')
+        console.log(row)
       }
     }
     entries = new_entries;
@@ -77,22 +98,32 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   // table. this allows sharing of objects if there are duplicates in query
   // results.
   for (var i=0; i<entries.length; i++) {
+    // XXX
     for (var j=0; j<entries[i].length; j++) {
       var entry = entries[i][j];
-      var obj_id = entry.model+'.'+entry.id;
-      if (object_cache[obj_id] === undefined) {
-        var id_str = ''+entry.id;
-        if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
-        object_cache[obj_id] = {id: {value: entry.id, display: id_str }};
+      if (entry !== null) {
+        var obj_id = entry.model+'.'+entry.id;
+        if (object_cache[obj_id] === undefined) {
+          var id_str = ''+entry.id;
+          if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
+          object_cache[obj_id] = {id: {value: entry.id, display: id_str }};
+        }
+        entry['ptr'] = object_cache[obj_id];
       }
-      entry['ptr'] = object_cache[obj_id];
     }
   }
 
   // remeber each query's model
   for (var j=0; j<entries[0].length; j++) {
-    tbl_queries.push({model: entries[0][j].model, cols: 1});
-    models.push({model: entries[0][j].model,
+    var model_i = null;
+    for (var i=0; i<entries.length; i++) {
+      if (entries[i][j] !== null) { model_i = i; break; }
+    }
+    if (model_i === null) {
+      alert('No model for a query. This is really bad!!!');
+    }
+    tbl_queries.push({model: entries[model_i][j].model, cols: 1});
+    models.push({model: entries[model_i][j].model,
                  attrs: [{name: 'id', visible: true}],
                  loaded: false});
   }
@@ -516,7 +547,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     if (nfetch > entries.length) { nfetch = entries.length; }
     for (var i=0; i<nfetch; i++) {
       var entry = entries[i][query_idx];
-      ids.push(entry.ptr.id.value);
+      if (entry !== null) { ids.push(entry.ptr.id.value); }
       // console.log('will fetch '+entry.ptr.id.value);
     }
     get_objects(models[query_idx].model, ids, function(data) {

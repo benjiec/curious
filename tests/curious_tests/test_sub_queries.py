@@ -142,3 +142,22 @@ class TestSubQueries(TestCase):
 
     self.assertEquals(len(result[0]), 3)
     self.assertEquals(result[1], Blog)
+
+  def test_left_join_with_no_left_join_results(self):
+    qs = 'Blog(%s) Blog.entry_set ?(Entry.authors(name__icontains="Potter")) Entry.blog' \
+           % self.blogs[0].pk
+    query = Query(qs)
+    result = query()
+
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
+                                                    (self.entries[1], None),
+                                                    (self.entries[2], None)])
+
+    self.assertEquals(result[0][1][1], 0)
+    assertQueryResultsEqual(self, result[0][1][0], [(self.blogs[0], self.entries[0].pk),
+                                                    (self.blogs[0], self.entries[1].pk),
+                                                    (self.blogs[0], self.entries[2].pk)])
+
+    self.assertEquals(len(result[0]), 2)
+    self.assertEquals(result[1], Blog)

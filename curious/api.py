@@ -173,7 +173,7 @@ class QueryView(JSONView):
     res, last_model = query()
     results = []
 
-    for obj_src in res:
+    for obj_src, join_index in res:
       model = None
       for obj, src in obj_src:
         if obj is not None:
@@ -188,10 +188,9 @@ class QueryView(JSONView):
         model_name = None
 
       d = {'model': model_name,
+           'join_index': join_index,
            'objects': [(obj.pk, model_registry.geturl(model_name, obj), src)
-                         if obj is not None
-                         else (None, None, src)
-                       for obj, src in obj_src]
+                         if obj is not None else (None, None, src) for obj, src in obj_src]
           }
       results.append(d)
 

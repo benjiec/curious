@@ -192,11 +192,11 @@ class Query(object):
     # take only the last result from subquery; grammar should enforce this.
     if len(subquery_res) > 0:
       assert(len(subquery_res) == 1)
-      subquery_res = subquery_res[-1]
+      subquery_res = subquery_res[-1][0]
 
     keep = []
     for obj, src in obj_src:
-      result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res[0] if sub_src == obj.pk]
+      result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
 
       if len(result_from_subq) > 0: # subquery has result
         # if no modifier to subquery, or said should have subquery results ('+' or '?')
@@ -208,9 +208,9 @@ class Query(object):
         if having in ('-', '?'):
           keep.append((obj, src))
           if having == '?':
-            subquery_res[0].append((None, obj.pk))
+            subquery_res.append((None, obj.pk))
 
-    return keep, subquery_res[0]
+    return keep, subquery_res
 
 
   @staticmethod
@@ -251,11 +251,19 @@ class Query(object):
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
 
         if step['having'] is None or step['having'] == '?': 
-          # add subquery result to results
-          res.append((subquery_res, last_non_sub_index))
-          # don't increase last_non_sub_index, so caller knows next query
-          # should still join with the last non sub query results.
-          more_results = False
+          # if there are no results at all, then skip
+          has_result = False
+          for obj, src in subquery_res:
+            if obj is not None:
+              has_result = True
+              break
+
+          if has_result:
+            # add subquery result to results
+            res.append((subquery_res, last_non_sub_index))
+            # don't increase last_non_sub_index, so caller knows next query
+            # should still join with the last non sub query results.
+            more_results = False
 
       else:
         print 'query: %s' % step
