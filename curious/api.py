@@ -156,7 +156,7 @@ class QueryView(JSONView):
   QUERY_TIME_CACHING_THRESHOLD = 10
 
   def get_query_results(self, query, force):
-    k = hash('v%d_%s' % (3, query.query_string))
+    k = hash('v%d_%s' % (4, query.query_string))
     v = cache.get(k)
     if v is None or force:
       t = time.time()
