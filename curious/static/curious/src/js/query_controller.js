@@ -59,6 +59,9 @@ function QueryController($scope, $http) {
     init_query();
 
     var query = $scope.query;
+    // convert newlines into spaces
+    query = query.replace(/\n/g, " ");
+
     do_query(query, $scope.query_info.reload, function(res, err) {
       $scope.completed = true;
       if (err) {

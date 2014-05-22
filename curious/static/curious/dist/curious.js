@@ -682,6 +682,9 @@ function QueryController($scope, $http) {
     init_query();
 
     var query = $scope.query;
+    // convert newlines into spaces
+    query = query.replace(/\n/g, " ");
+
     do_query(query, $scope.query_info.reload, function(res, err) {
       $scope.completed = true;
       if (err) {
@@ -755,6 +758,8 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
   };
 
   $scope._check_query = function(query_string, cb) {
+    // convert newlines into spaces
+    query_string = query_string.replace(/\n/g, " ");
     var url = $scope.__base_url+'/q/';
     var url = url+'?c=1&q='+encodeURIComponent(query_string);
     $http.get(url)
