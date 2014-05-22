@@ -237,7 +237,7 @@ class Query(object):
         or_results.append((res, m))
 
     models = list(set([r[1] for r in or_results]))
-    if len(models) != 1:
+    if len(models) > 1:
       raise Exception("Different object types at end of OR query: %s" % (', '.join([str(x) for x in models]),))
 
     next_obj_src = []

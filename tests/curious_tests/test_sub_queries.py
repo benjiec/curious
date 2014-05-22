@@ -44,15 +44,15 @@ class TestSubQueries(TestCase):
     result = query()
     self.assertEquals(result[0][0][1], -1)
     assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
-                                                 (self.entries[1], None),
-                                                 (self.entries[2], None)])
+                                                    (self.entries[1], None),
+                                                    (self.entries[2], None)])
     self.assertEquals(result[0][1][1], 0)
     assertQueryResultsEqual(self, result[0][1][0], [(self.authors[0], self.entries[0].pk),
-                                                 (self.authors[1], self.entries[0].pk),
-                                                 (self.authors[1], self.entries[1].pk),
-                                                 (self.authors[2], self.entries[1].pk),
-                                                 (self.authors[2], self.entries[2].pk),
-                                                 (self.authors[0], self.entries[2].pk)])
+                                                    (self.authors[1], self.entries[0].pk),
+                                                    (self.authors[1], self.entries[1].pk),
+                                                    (self.authors[2], self.entries[1].pk),
+                                                    (self.authors[2], self.entries[2].pk),
+                                                    (self.authors[0], self.entries[2].pk)])
     self.assertEquals(len(result[0]), 2)
     self.assertEquals(result[1], Author)
 
