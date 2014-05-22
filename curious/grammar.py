@@ -1,16 +1,38 @@
 QUERY_PEG = """
+# a query starts with an object query and can have many steps
+
 query        = object_query space* steps? nl?
+
+# object query: differs from a step in that it must have a filter defining some
+# rule to get some objects to seed the query
+
 object_query = model filter_or_id
 filter_or_id = id_arg / filters
 id_arg       = "(" space* id space* ")"
+
+# different ways to recursively search
+
+recursion    = "*" "*"?
+
+# steps for query can be a single step, possibly joining with previous step, or
+# a subquery
+
 steps        = step another_step*
 another_step = space* step
 step         = one_query / sub_query
-sub_query    = modifier? "(" steps ")"
+sub_query    = modifier? "(" nj_steps ")"
 modifier     = "+" / "-"
 one_query    = join? space* one_rel recursion?
 join         = ","
-recursion    = "*" "*"?
+
+# steps for subquery, no joining or subquery allowed
+
+nj_steps     = nj_query more_nj*
+more_nj      = space* nj_query
+nj_query     = one_rel recursion?
+
+# single relationship
+
 one_rel      = model "." identifier filters?
 filters      = filter_group? name_filters*
 name_filters = name_filter name_filter*
@@ -28,6 +50,8 @@ bracket_l    = "[" / "("
 bracket_r    = "]" / ")"
 another_val  = space* "," space* value
 value        = string / bool / float / int / null
+
+# misc
 int          = ~"\\-?[0-9]+"
 float        = ~"\\-?[0-9]\\.[0-9]+"
 bool         = "True" / "False"

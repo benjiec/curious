@@ -26,7 +26,7 @@ class Query(object):
     relationships or subqueries. This function checks each model relationship
     to make sure the model and the relationship exist.
     """
-
+    
     for rel in query:
       if 'subquery' in rel:
         Query._validate(rel['subquery'])
@@ -189,6 +189,7 @@ class Query(object):
     subquery_res, last_model = Query._query(objects, subquery)
     #print 'res %s' % (subquery_res,)
 
+    # take only the last result from subquery; grammar may limit us to this anyways.
     if len(subquery_res) > 0:
       assert(len(subquery_res) == 1)
       subquery_res = subquery_res[-1]

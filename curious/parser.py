@@ -54,11 +54,26 @@ class ASTBuilder(NodeVisitor):
       steps.append(s)
     return steps
 
-  def visit_another_step(self, node, (_1, step)):
-    return step
+  def visit_nj_steps(self, *args):
+    return self.visit_steps(*args)
 
   def visit_step(self, node, q):
     return q[0]
+
+  def visit_another_step(self, node, (_1, step)):
+    return step
+
+  def visit_more_nj(self, node, (_1, nj_step)):
+    return nj_step
+
+  def visit_nj_query(self, node, (one_rel, recursion)):
+    if type(recursion) == list:
+      one_rel['recursive'] = True
+      if recursion[0] is True:
+        one_rel['collect'] = 'terminal'
+      else:
+        one_rel['collect'] = 'intermediate'
+    return one_rel
 
   def visit_sub_query(self, node, (modifier, _1, q, _2)):
     join = False
@@ -76,13 +91,7 @@ class ASTBuilder(NodeVisitor):
   def visit_one_query(self, node, (join, _1, one_rel, recursion)):
     if type(join) == list:
       one_rel['join'] = True
-    if type(recursion) == list:
-      one_rel['recursive'] = True
-      if recursion[0] is True:
-        one_rel['collect'] = 'terminal'
-      else:
-        one_rel['collect'] = 'intermediate'
-    return one_rel
+    return self.visit_nj_query(node, (one_rel, recursion))
 
   def visit_one_rel(self, node, (model, _1, method, filters)):
     if type(filters) != list:
