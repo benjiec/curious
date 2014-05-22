@@ -43,3 +43,11 @@ class Entry(models.Model):
 
   def __unicode__(self):
     return self.headline
+
+
+class Comment(models.Model):
+  entry = models.ForeignKey(Entry)
+  comment = models.CharField(max_length=50)
+
+  def __unicode__(self):
+    return self.comment

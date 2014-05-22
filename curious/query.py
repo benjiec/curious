@@ -4,6 +4,26 @@ from .parser import Parser
 from .utils import report_time
 
 
+class NullEntry(object):
+  """
+  Represents a null row in results, each instance of this class has an unique pk/id field.
+  """
+
+  _counter = 1
+
+  def __init__(self):
+    self.__pk = '__null__%d' % NullEntry._counter
+    NullEntry._counter += 1
+
+  @property
+  def id(self):
+    return self.__pk
+
+  @property
+  def pk(self):
+    return self.__pk
+
+
 class Query(object):
 
   def __init__(self, query):
@@ -189,7 +209,7 @@ class Query(object):
     subquery_res, last_model = Query._query(objects, subquery)
     #print 'res %s' % (subquery_res,)
 
-    # take only the last result from subquery; grammar may limit us to this anyways.
+    # take only the last result from subquery; grammar should enforce this.
     if len(subquery_res) > 0:
       assert(len(subquery_res) == 1)
       subquery_res = subquery_res[-1]
@@ -197,9 +217,18 @@ class Query(object):
     keep = []
     for obj, src in obj_src:
       result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
-      if (having is True and len(result_from_subq) > 0) or\
-         (having is False and len(result_from_subq) == 0):
-        keep.append((obj, src))
+
+      if len(result_from_subq) > 0: # subquery has result
+        # if no modifier to subquery, or said should have subquery results ('+' or '?')
+        if having is None or having in ('+', '?'):
+          keep.append((obj, src))
+
+      if len(result_from_subq) == 0: # no subquery result
+        # if said should not have subquery results ('-') or don't care ('?')
+        if having in ('-', '?'):
+          keep.append((obj, src))
+          if having == '?':
+            subquery_res.append((NullEntry(), obj.pk))
 
     return keep, subquery_res
 
@@ -229,7 +258,8 @@ class Query(object):
       if len(obj_src) == 0:
         return [], None
 
-      if 'join' in step and step['join'] is True:
+      if ('join' in step and step['join'] is True) or\
+         ('subquery' in step and (step['having'] is None or step['having'] == '?')):
         res.append(obj_src)
         more_results = False
         obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
@@ -237,7 +267,8 @@ class Query(object):
       if 'subquery' in step:
         print 'subquery %s' % step
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
-        if 'join' in step and step['join'] is True:
+
+        if step['having'] is None or step['having'] == '?': 
           # add subquery result to results
           res.append(subquery_res)
           more_results = False
@@ -259,10 +290,14 @@ class Query(object):
     if more_results:
       res.append(obj_src)
 
-    # last model
-    t = obj_src[0][0].__class__
-    if t._deferred:
-      t = t.__base__
+    # last model, can be None if left join and got no data
+    t = None
+    for obj, src in obj_src:
+      if type(obj) != NullEntry:
+        t = obj.__class__
+        if t._deferred:
+          t = t.__base__
+        break
 
     return res, t
 

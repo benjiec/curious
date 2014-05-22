@@ -1,6 +1,6 @@
 def _d(instance):
   t = type(instance)
-  if t._deferred:
+  if hasattr(t, '_deferred') and t._deferred:
     t = t.__base__
   return (t, instance.pk)
 

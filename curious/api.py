@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from django.views.generic.base import View
 
 from curious import model_registry
-from .query import Query
+from .query import Query, NullEntry
 from .utils import report_time
 import time
 
@@ -172,15 +172,29 @@ class QueryView(JSONView):
   def run_query(self, query):
     res, last_model = query()
     results = []
+
     for obj_src in res:
-      model = type(obj_src[0][0])
-      if model._deferred:
-        model = model.__base__
-      model_name = model_registry.getname(model)
+      model = None
+      for obj, src in obj_src:
+        if type(obj) != NullEntry:
+          model = obj.__class__
+          if model._deferred:
+            model = model.__base__
+          break
+
+      if model is not None:
+        model_name = model_registry.getname(model)
+      else:
+        model_name = None
+
       d = {'model': model_name,
-           'objects': [(obj.pk, model_registry.geturl(model_name, obj), src) for obj, src in obj_src]
+           'objects': [(obj.pk, model_registry.geturl(model_name, obj), src)
+                         if type(obj) != NullEntry
+                         else (obj.pk, None, src)
+                       for obj, src in obj_src]
           }
       results.append(d)
+
     if last_model is not None:
       return dict(last_model=model_registry.getname(last_model),
                   results=results, computed_on=datetime.now())
