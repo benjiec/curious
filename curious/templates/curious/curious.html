@@ -1,1 +1,28 @@
-../../static/curious/curious.html
+{% load staticfiles %}
+<!doctype html>
+<html lang="en" ng-app="curious">
+<head>
+    <meta charset="utf-8">
+    <title>Curious</title>
+    <!-- bootstrap -->
+    <script src="{% static 'curious/lib/jquery/dist/jquery.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'curious/lib/bootstrap/dist/css/bootstrap.min.css' %}">
+    <script src="{% static 'curious/lib/bootstrap/dist/js/bootstrap.min.js' %}"></script>
+    <!-- angular -->
+    <script src="{% static 'curious/lib/angular/angular.min.js' %}"></script>
+    <script src="{% static 'curious/lib/angular-route/angular-route.min.js' %}"></script>
+    <script src="{% static 'curious/lib/angular-sanitize/angular-sanitize.min.js' %}"></script>
+    <!-- pourover -->
+    <script src="{% static 'curious/lib/underscore/underscore.js' %}"></script>
+    <script src="{% static 'curious/lib/pourover/pourover.js' %}"></script>
+    <!-- curious -->
+    <script src="{% static 'curious/dist/curious_jst.js' %}"></script>
+    <script src="{% static 'curious/dist/curious.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'curious/dist/curious.css' %}">
+</head>
+<body>
+
+<div ng-view></div>
+
+</body>
+</html>
