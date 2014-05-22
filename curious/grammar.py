@@ -21,7 +21,7 @@ steps        = step another_step*
 another_step = space* step
 step         = one_query / sub_query
 sub_query    = modifier? "(" nj_steps ")"
-modifier     = "+" / "-" / "?"
+modifier     = "+" / "-"
 one_query    = join? space* one_rel recursion?
 join         = ","
 

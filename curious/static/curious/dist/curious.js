@@ -104,8 +104,12 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
     for (var i=0; i<entries.length; i++) {
       var row = entries[i];
-      var join_pk = row[join_index].id;
-      var objs = column.map[join_pk];
+      var objs = undefined;
+
+      if (row[join_index] !== null) {
+        var join_pk = row[join_index].id;
+        objs = column.map[join_pk];
+      }
 
       if (objs !== undefined) {
         for (var j=0; j<objs.length; j++) {
@@ -115,6 +119,10 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
           else { new_row.push(null); }
           new_entries.push(new_row);
         }
+      }
+      else {
+        row.push(null);
+        new_entries.push(row);
       }
     }
     entries = new_entries;
