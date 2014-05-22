@@ -4,26 +4,6 @@ from .parser import Parser
 from .utils import report_time
 
 
-class NullEntry(object):
-  """
-  Represents a null row in results, each instance of this class has an unique pk/id field.
-  """
-
-  _counter = 1
-
-  def __init__(self):
-    self.__pk = '__null__%d' % NullEntry._counter
-    NullEntry._counter += 1
-
-  @property
-  def id(self):
-    return self.__pk
-
-  @property
-  def pk(self):
-    return self.__pk
-
-
 class Query(object):
 
   def __init__(self, query):
@@ -216,7 +196,7 @@ class Query(object):
 
     keep = []
     for obj, src in obj_src:
-      result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
+      result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res[0] if sub_src == obj.pk]
 
       if len(result_from_subq) > 0: # subquery has result
         # if no modifier to subquery, or said should have subquery results ('+' or '?')
@@ -228,9 +208,9 @@ class Query(object):
         if having in ('-', '?'):
           keep.append((obj, src))
           if having == '?':
-            subquery_res.append((NullEntry(), obj.pk))
+            subquery_res[0].append((None, obj.pk))
 
-    return keep, subquery_res
+    return keep, subquery_res[0]
 
 
   @staticmethod
@@ -248,6 +228,7 @@ class Query(object):
 
     res = []
     more_results = True
+    last_non_sub_index = -1
 
     if demux_first is True:
       obj_src = [(obj, obj.pk) for obj in objects]
@@ -260,7 +241,8 @@ class Query(object):
 
       if ('join' in step and step['join'] is True) or\
          ('subquery' in step and (step['having'] is None or step['having'] == '?')):
-        res.append(obj_src)
+        res.append((obj_src, last_non_sub_index))
+        last_non_sub_index = len(res)-1
         more_results = False
         obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
 
@@ -270,14 +252,10 @@ class Query(object):
 
         if step['having'] is None or step['having'] == '?': 
           # add subquery result to results
-          res.append(subquery_res)
+          res.append((subquery_res, last_non_sub_index))
+          # don't increase last_non_sub_index, so caller knows next query
+          # should still join with the last non sub query results.
           more_results = False
-          # link subquery res to pre subquery result, so we can continue query
-          # from pre subquery result
-          new_obj_src = []
-          for obj, src in obj_src:
-            new_obj_src += [(obj, sub_obj.pk) for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
-          obj_src = new_obj_src
 
       else:
         print 'query: %s' % step
@@ -288,12 +266,12 @@ class Query(object):
       return [], None
 
     if more_results:
-      res.append(obj_src)
+      res.append((obj_src, last_non_sub_index))
 
     # last model, can be None if left join and got no data
     t = None
     for obj, src in obj_src:
-      if type(obj) != NullEntry:
+      if obj is not None:
         t = obj.__class__
         if t._deferred:
           t = t.__base__

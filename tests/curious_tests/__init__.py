@@ -1,4 +1,6 @@
 def _d(instance):
+  if instance is None:
+    return instance
   t = type(instance)
   if hasattr(t, '_deferred') and t._deferred:
     t = t.__base__

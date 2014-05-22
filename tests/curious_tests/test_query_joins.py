@@ -39,9 +39,10 @@ class TestQueryJoins(TestCase):
     qs = 'Blog(name__icontains="Databases") Blog.entry_set Entry.authors'
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.authors[0], None),
-                                                 (self.authors[1], None),
-                                                 (self.authors[2], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.authors[0], None),
+                                                    (self.authors[1], None),
+                                                    (self.authors[2], None)])
     self.assertEquals(len(result[0]), 1)
     self.assertEquals(result[1], Author)
 
@@ -49,15 +50,17 @@ class TestQueryJoins(TestCase):
     qs = 'Blog(name__icontains="Databases"), Blog.entry_set Entry.authors'
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], None),
-                                                 (self.blogs[1], None),
-                                                 (self.blogs[2], None)])
-    assertQueryResultsEqual(self, result[0][1], [(self.authors[0], self.blogs[0].pk),
-                                                 (self.authors[1], self.blogs[0].pk),
-                                                 (self.authors[1], self.blogs[1].pk),
-                                                 (self.authors[2], self.blogs[1].pk),
-                                                 (self.authors[2], self.blogs[2].pk),
-                                                 (self.authors[0], self.blogs[2].pk)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None),
+                                                    (self.blogs[1], None),
+                                                    (self.blogs[2], None)])
+    self.assertEquals(result[0][1][1], 0)
+    assertQueryResultsEqual(self, result[0][1][0], [(self.authors[0], self.blogs[0].pk),
+                                                    (self.authors[1], self.blogs[0].pk),
+                                                    (self.authors[1], self.blogs[1].pk),
+                                                    (self.authors[2], self.blogs[1].pk),
+                                                    (self.authors[2], self.blogs[2].pk),
+                                                    (self.authors[0], self.blogs[2].pk)])
     self.assertEquals(len(result[0]), 2)
     self.assertEquals(result[1], Author)
 
@@ -65,14 +68,16 @@ class TestQueryJoins(TestCase):
     qs = 'Blog(name__icontains="Databases") (Blog.entry_set Entry.authors)'
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], None),
-                                                 (self.blogs[1], None),
-                                                 (self.blogs[2], None)])
-    assertQueryResultsEqual(self, result[0][1], [(self.authors[0], self.blogs[0].pk),
-                                                 (self.authors[1], self.blogs[0].pk),
-                                                 (self.authors[1], self.blogs[1].pk),
-                                                 (self.authors[2], self.blogs[1].pk),
-                                                 (self.authors[2], self.blogs[2].pk),
-                                                 (self.authors[0], self.blogs[2].pk)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None),
+                                                    (self.blogs[1], None),
+                                                    (self.blogs[2], None)])
+    self.assertEquals(result[0][1][1], 0)
+    assertQueryResultsEqual(self, result[0][1][0], [(self.authors[0], self.blogs[0].pk),
+                                                    (self.authors[1], self.blogs[0].pk),
+                                                    (self.authors[1], self.blogs[1].pk),
+                                                    (self.authors[2], self.blogs[1].pk),
+                                                    (self.authors[2], self.blogs[2].pk),
+                                                    (self.authors[0], self.blogs[2].pk)])
     self.assertEquals(len(result[0]), 2)
     self.assertEquals(result[1], Blog)

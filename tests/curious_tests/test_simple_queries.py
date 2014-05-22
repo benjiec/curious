@@ -38,56 +38,63 @@ class TestSimpleQueries(TestCase):
     qs = 'Entry(%s)' % self.entries[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
 
   def test_query_starting_with_filter(self):
     qs = 'Entry(id=%s)' % self.entries[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
 
   def test_query_traversing_to_fk_object(self):
     qs = 'Entry(%s) Entry.blog' % self.entries[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.blogs[0], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
     self.assertEquals(result[1], Blog)
   
   def test_query_traversing_from_fk_objects(self):
     qs = 'Blog(%s) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
-                                                 (self.entries[1], None),
-                                                 (self.entries[2], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
+                                                    (self.entries[1], None),
+                                                    (self.entries[2], None)])
     self.assertEquals(result[1], Entry)
 
   def test_query_traversing_to_M2M_objects(self):
     qs = 'Blog(%s) Blog.entry_set Entry.authors' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.authors[0], None),
-                                                 (self.authors[1], None),
-                                                 (self.authors[2], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.authors[0], None),
+                                                    (self.authors[1], None),
+                                                    (self.authors[2], None)])
     self.assertEquals(result[1], Author)
 
   def test_query_traversing_with_function_and_from_M2M_objects(self):
     qs = 'Blog(%s) Blog.authors Author.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
-                                                 (self.entries[1], None),
-                                                 (self.entries[2], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
+                                                    (self.entries[1], None),
+                                                    (self.entries[2], None)])
     self.assertEquals(result[1], Entry)
 
   def test_query_traversing_with_filters(self):
     qs = 'Blog(%s) Blog.authors(name__icontains="Smith") Author.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
-                                                 (self.entries[2], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
+                                                    (self.entries[2], None)])
     self.assertEquals(result[1], Entry)
 
   def test_query_traversing_with_exclusions(self):
@@ -96,15 +103,17 @@ class TestSimpleQueries(TestCase):
     result = query()
     # should return all entries, since at least one author in each entry does
     # not have "Smith"
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
-                                                 (self.entries[1], None),
-                                                 (self.entries[2], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
+                                                    (self.entries[1], None),
+                                                    (self.entries[2], None)])
     self.assertEquals(result[1], Entry)
 
     qs = 'Blog(%s) Blog.authors.exclude(name__icontains="Jo") Author.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
     # should omit last entry, since both authors for that entry has Jo in their names
-    assertQueryResultsEqual(self, result[0][0], [(self.entries[0], None),
-                                                 (self.entries[1], None)])
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None),
+                                                    (self.entries[1], None)])
     self.assertEquals(result[1], Entry)
