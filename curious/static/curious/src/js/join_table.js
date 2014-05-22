@@ -82,6 +82,13 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
           new_entries.push(new_row);
         }
       }
+      // The following will give you left join behavior in the display, since
+      // it will create an empty row when it cannot extend a query.
+      //
+      // else {
+      //   row.push(null);
+      //   new_entries.push(row);
+      // }
     }
     entries = new_entries;
   }

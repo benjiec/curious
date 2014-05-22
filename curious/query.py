@@ -28,7 +28,10 @@ class Query(object):
     """
     
     for rel in query:
-      if 'subquery' in rel:
+      if 'orquery' in rel:
+        for q in rel['orquery']:
+          Query._validate(q)
+      elif 'subquery' in rel:
         Query._validate(rel['subquery'])
       else:
         model = rel['model']
@@ -64,6 +67,24 @@ class Query(object):
 
 
   @staticmethod
+  def _extend_result(obj_src, next_obj_src):
+    # build input hash of IDs
+    input_map = {}
+    for obj, src in obj_src:
+      if obj.pk not in input_map:
+        input_map[obj.pk] = []
+      input_map[obj.pk].append(src)
+
+    keep = []
+    for next_obj, next_src in next_obj_src:
+      if next_src in input_map:
+        for src in input_map[next_src]:
+          keep.append((next_obj, src))
+
+    return list(set(keep))
+
+
+  @staticmethod
   @report_time
   def _graph_step(obj_src, model, step_f, filters):
     """
@@ -83,20 +104,7 @@ class Query(object):
 
     next_obj_src = traverse([obj for obj, src in obj_src], step_f, filters)
 
-    # build input hash of IDs
-    input_map = {}
-    for obj, src in obj_src:
-      if obj.pk not in input_map:
-        input_map[obj.pk] = []
-      input_map[obj.pk].append(src)
-
-    keep = []
-    for next_obj, next_src in next_obj_src:
-      if next_src in input_map:
-        for src in input_map[next_src]:
-          keep.append((next_obj, src))
-
-    return list(set(keep))
+    return Query._extend_result(obj_src, next_obj_src)
 
 
   @staticmethod
@@ -214,6 +222,32 @@ class Query(object):
 
 
   @staticmethod
+  def _or(obj_src, step):
+    """
+    Or results of multiple queries
+    """
+
+    or_queries = step['orquery']
+    or_results = []
+
+    for query in or_queries:
+      objects = [obj for obj, src in obj_src]
+      res, m = Query._query(objects, query)
+      if len(res) > 0:
+        or_results.append((res, m))
+
+    models = list(set([r[1] for r in or_results]))
+    if len(models) != 1:
+      raise Exception("Different object types at end of OR query: %s" % (', '.join([str(x) for x in models]),))
+
+    next_obj_src = []
+    for res, m in or_results:
+      next_obj_src.extend(res[0][0])
+
+    return Query._extend_result(obj_src, next_obj_src)
+
+
+  @staticmethod
   def _query(objects, query, demux_first=True):
     """
     Executes a query. A query consists of one or more subqueries. Each subquery
@@ -246,7 +280,11 @@ class Query(object):
         more_results = False
         obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
 
-      if 'subquery' in step:
+      if 'orquery' in step:
+        print 'orquery %s' % step
+        obj_src = Query._or(obj_src, step)
+
+      elif 'subquery' in step:
         print 'subquery %s' % step
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
 

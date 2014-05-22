@@ -15,15 +15,17 @@ id_arg       = "(" space* id space* ")"
 recursion    = "*" "*"?
 
 # steps for query can be a single step, possibly joining with previous step, or
-# a subquery
+# a subquery, or an or query
 
 steps        = step another_step*
 another_step = space* step
-step         = one_query / sub_query
+step         = one_query / or_query / sub_query
 sub_query    = modifier? "(" nj_steps ")"
 modifier     = "+" / "-" / "?"
 one_query    = join? space* one_rel recursion?
 join         = ","
+or_query     = join? space* "(" nj_steps ")" space* "|" space* "(" nj_steps ")" more_ors*
+more_ors     = space* "|" space* "(" nj_steps ")"
 
 # steps for subquery, no joining or subquery allowed
 

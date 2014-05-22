@@ -82,6 +82,17 @@ class ASTBuilder(NodeVisitor):
       having = modifier[0]
     return dict(subquery=q, having=having, join=join)
 
+  def visit_or_query(self, node, (join, _0, _1, nj_steps_1, _2, _s1, _3, _s2, _4, nj_steps_2, _5, more_ors)):
+    r = dict(orquery=[nj_steps_1, nj_steps_2], join=False)
+    if type(join) == list:
+      r['join'] = True
+    if type(more_ors) == list:
+      r['orquery'].extend(more_ors)
+    return r
+
+  def visit_more_ors(self, node, (_s1, _1, _s2, _2, nj_steps, _3)):
+    return nj_steps
+
   def visit_one_query(self, node, (join, _1, one_rel, recursion)):
     if type(join) == list:
       one_rel['join'] = True

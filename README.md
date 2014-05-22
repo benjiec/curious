@@ -16,6 +16,8 @@ Query Language
 --------------
 
 avg, sum, max, count.
+? modifier for left joins.
+t modifier for dates.
 
 
 Configuring Curious
