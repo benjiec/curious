@@ -39,10 +39,8 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     results[i].map = {}
     for (var j=0; j<results[i].objects.length; j++) {
       var obj = results[i].objects[j];
-      if (obj[0] !== null) {
-        if (results[i].map[obj[2]] === undefined) { results[i].map[obj[2]] = []; }
-        results[i].map[obj[2]].push(obj);
-      }
+      if (results[i].map[obj[2]] === undefined) { results[i].map[obj[2]] = []; }
+      results[i].map[obj[2]].push(obj);
     }
   }
 
@@ -68,9 +66,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
     for (var i=0; i<entries.length; i++) {
       var row = entries[i];
-      console.log('col '+col+', row '+i+', joins '+join_index)
-      console.log(row)
-
       var join_pk = row[join_index].id;
       var objs = column.map[join_pk];
 
@@ -78,17 +73,10 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
         for (var j=0; j<objs.length; j++) {
           var new_row = row;
           if (objs.length != 1) { new_row = row.slice(0); }
-          new_row.push(build_obj(col, objs[j]));
+          if (objs[j][0] !== null) { new_row.push(build_obj(col, objs[j])); }
+          else { new_row.push(null); }
           new_entries.push(new_row);
-          console.log('add row')
-          console.log(new_row)
         }
-      }
-      else {
-        row.push(null);
-        new_entries.push(row);
-        console.log('add null')
-        console.log(row)
       }
     }
     entries = new_entries;
@@ -98,7 +86,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   // table. this allows sharing of objects if there are duplicates in query
   // results.
   for (var i=0; i<entries.length; i++) {
-    // XXX
     for (var j=0; j<entries[i].length; j++) {
       var entry = entries[i][j];
       if (entry !== null) {

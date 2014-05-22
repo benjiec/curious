@@ -1,84 +1,3 @@
-'use strict';
-
-function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
-  $scope.__base_url = '/curious';
-
-  // SearchController object cache 
-  $scope._object_cache = {};
-
-  $scope.query = '';
-  $scope.query_error = '';
-  $scope.query_accepted = '';
-
-  $scope.delayPromise = undefined;
-  $scope.recent_queries = RecentQueries;
-
-  $scope.query_submitted = [];
-
-  if ($routeParams && $routeParams.query) {
-    $scope.query = $routeParams.query;
-    $scope.query_submitted = [{query: $scope.query, reload: false}];
-    var i = $scope.recent_queries.indexOf($routeParams.query);
-    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
-  }
-
-  $scope.delayCheckQuery = function() {
-    if ($scope.delayPromise !== undefined) {
-      $timeout.cancel($scope.delayPromise);
-      $scope.delayPromise = undefined;
-    }
-    $scope.delayPromise = $timeout(function() {
-      $scope.checkQuery();
-      $scope.delayPromise = undefined;
-    }, 1000);
-  };
-
-  $scope._check_query = function(query_string, cb) {
-    var url = $scope.__base_url+'/q/';
-    var url = url+'?c=1&q='+encodeURIComponent(query_string);
-    $http.get(url)
-      .success(function(data) { cb(data.result.query, ''); })
-      .error(function(data, status, headers, config) {
-        var err = '';
-        if (data.error) { err = data.error.message; }
-        else { err = 'Unspecified error'; }
-        cb('', err);
-      });
-  };
-
-  $scope._new_query = function(query, reload) {
-    var url = '/q/'+encodeURI(query);
-    $location.path(url);
-    $scope.query_submitted = [{query: $scope.query, reload: reload}];
-  }
-
-  $scope.checkQuery = function(cb) {
-    if ($scope.query != '') {
-      $scope._check_query($scope.query, function(query_string, err) {
-        $scope.query_error = err;
-        $scope.query_accepted = query_string;
-        if (cb !== undefined) { cb(query_string, err); }
-      });
-    }
-  };
-
-  $scope.submitQuery = function(reload) {
-    if (reload === undefined) { reload = false; }
-    $scope.checkQuery(function(query_string, err) {
-      if (query_string !== '') { $scope._new_query(query_string, reload); }
-    });
-  };
-
-  $scope.refreshQuery = function () {
-    $scope.reload = true;
-  };
-
-  $scope.extendQuery = function(model, rel) {
-    $scope.query = $scope.query+' '+model+'.'+rel;
-    $scope.submitQuery();
-  };
-}
-
 var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
@@ -158,10 +77,8 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     results[i].map = {}
     for (var j=0; j<results[i].objects.length; j++) {
       var obj = results[i].objects[j];
-      if (obj[0] !== null) {
-        if (results[i].map[obj[2]] === undefined) { results[i].map[obj[2]] = []; }
-        results[i].map[obj[2]].push(obj);
-      }
+      if (results[i].map[obj[2]] === undefined) { results[i].map[obj[2]] = []; }
+      results[i].map[obj[2]].push(obj);
     }
   }
 
@@ -187,9 +104,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
 
     for (var i=0; i<entries.length; i++) {
       var row = entries[i];
-      console.log('col '+col+', row '+i+', joins '+join_index)
-      console.log(row)
-
       var join_pk = row[join_index].id;
       var objs = column.map[join_pk];
 
@@ -197,17 +111,10 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
         for (var j=0; j<objs.length; j++) {
           var new_row = row;
           if (objs.length != 1) { new_row = row.slice(0); }
-          new_row.push(build_obj(col, objs[j]));
+          if (objs[j][0] !== null) { new_row.push(build_obj(col, objs[j])); }
+          else { new_row.push(null); }
           new_entries.push(new_row);
-          console.log('add row')
-          console.log(new_row)
         }
-      }
-      else {
-        row.push(null);
-        new_entries.push(row);
-        console.log('add null')
-        console.log(row)
       }
     }
     entries = new_entries;
@@ -217,7 +124,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
   // table. this allows sharing of objects if there are duplicates in query
   // results.
   for (var i=0; i<entries.length; i++) {
-    // XXX
     for (var j=0; j<entries[i].length; j++) {
       var entry = entries[i][j];
       if (entry !== null) {
@@ -804,3 +710,84 @@ function QueryController($scope, $http) {
   $scope.query = $scope.query_info.query;
   execute();
 };
+
+'use strict';
+
+function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
+  $scope.__base_url = '/curious';
+
+  // SearchController object cache 
+  $scope._object_cache = {};
+
+  $scope.query = '';
+  $scope.query_error = '';
+  $scope.query_accepted = '';
+
+  $scope.delayPromise = undefined;
+  $scope.recent_queries = RecentQueries;
+
+  $scope.query_submitted = [];
+
+  if ($routeParams && $routeParams.query) {
+    $scope.query = $routeParams.query;
+    $scope.query_submitted = [{query: $scope.query, reload: false}];
+    var i = $scope.recent_queries.indexOf($routeParams.query);
+    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
+  }
+
+  $scope.delayCheckQuery = function() {
+    if ($scope.delayPromise !== undefined) {
+      $timeout.cancel($scope.delayPromise);
+      $scope.delayPromise = undefined;
+    }
+    $scope.delayPromise = $timeout(function() {
+      $scope.checkQuery();
+      $scope.delayPromise = undefined;
+    }, 1000);
+  };
+
+  $scope._check_query = function(query_string, cb) {
+    var url = $scope.__base_url+'/q/';
+    var url = url+'?c=1&q='+encodeURIComponent(query_string);
+    $http.get(url)
+      .success(function(data) { cb(data.result.query, ''); })
+      .error(function(data, status, headers, config) {
+        var err = '';
+        if (data.error) { err = data.error.message; }
+        else { err = 'Unspecified error'; }
+        cb('', err);
+      });
+  };
+
+  $scope._new_query = function(query, reload) {
+    var url = '/q/'+encodeURI(query);
+    $location.path(url);
+    $scope.query_submitted = [{query: $scope.query, reload: reload}];
+  }
+
+  $scope.checkQuery = function(cb) {
+    if ($scope.query != '') {
+      $scope._check_query($scope.query, function(query_string, err) {
+        $scope.query_error = err;
+        $scope.query_accepted = query_string;
+        if (cb !== undefined) { cb(query_string, err); }
+      });
+    }
+  };
+
+  $scope.submitQuery = function(reload) {
+    if (reload === undefined) { reload = false; }
+    $scope.checkQuery(function(query_string, err) {
+      if (query_string !== '') { $scope._new_query(query_string, reload); }
+    });
+  };
+
+  $scope.refreshQuery = function () {
+    $scope.reload = true;
+  };
+
+  $scope.extendQuery = function(model, rel) {
+    $scope.query = $scope.query+' '+model+'.'+rel;
+    $scope.submitQuery();
+  };
+}
