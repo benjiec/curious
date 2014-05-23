@@ -49,7 +49,8 @@ class ModelView(JSONView):
     fields = []
     fk = []
     obj = objects[0]
-    excludes = model_registry.getexcludes(model_registry.getname(obj.__class__))
+    model_name = model_registry.getname(obj.__class__)
+    excludes = model_registry.getexcludes(model_name)
 
     for f in obj._meta.fields:
       if f.column not in excludes:
@@ -58,7 +59,9 @@ class ModelView(JSONView):
 
     packed = []
     for obj in objects:
-      values = []
+      url = model_registry.geturl(model_name, obj)
+      values = [url]
+
       for column, fk_name in zip(fields, fk):
         value = getattr(obj, column)
         if not type(value) in (long, int, float, bool, types.NoneType):
@@ -66,12 +69,12 @@ class ModelView(JSONView):
         if fk_name is not None:
           v = getattr(obj, fk_name)
           if v is not None:
-            model_name = model_registry.getname(v.__class__)
+            fk_model_name = model_registry.getname(v.__class__)
             try:
-              url = model_registry.geturl(model_name, v)
+              url = model_registry.geturl(fk_model_name, v)
             except:
               url = None
-            value = (model_name, v.pk, str(v), url)
+            value = (fk_model_name, v.pk, str(v), url)
         values.append(value)
       packed.append(values)
 
@@ -189,8 +192,7 @@ class QueryView(JSONView):
 
       d = {'model': model_name,
            'join_index': join_index,
-           'objects': [(obj.pk, model_registry.geturl(model_name, obj), src)
-                         if obj is not None else (None, None, src) for obj, src in obj_src]
+           'objects': [(obj.pk, src) if obj is not None else (None, src) for obj, src in obj_src]
           }
       results.append(d)
 

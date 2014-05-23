@@ -40,9 +40,9 @@ app.factory('RecentQueries', function() {
 // structure that angular template can easily use to display the objects and
 // their attributes.
 
-function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) {
+function curiousJoinTable(query_results, set_table_cb, object_cache_f, get_objects_f) {
   // Constructor:
-  //   results        - array of search results, each result has a model and a
+  //   query_results  - array of search results, each result has a model and a
   //                    list of object output input tuples
   //   set_table_cb   - callback to set table data structure, should take a hash
   //   object_cache_f - function to call to get object cache
@@ -84,31 +84,30 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     // from results, construct entries table - joining results together
 
     // for each result, build dict indexed by from id
-    for (var i=0; i<results.length; i++) {
-      results[i].map = {}
-      for (var j=0; j<results[i].objects.length; j++) {
-        var obj = results[i].objects[j];
-        if (results[i].map[obj[2]] === undefined) { results[i].map[obj[2]] = []; }
-        results[i].map[obj[2]].push(obj);
+    for (var i=0; i<query_results.length; i++) {
+      query_results[i].map = {}
+      for (var j=0; j<query_results[i].objects.length; j++) {
+        var obj = query_results[i].objects[j];
+        if (query_results[i].map[obj[1]] === undefined) { query_results[i].map[obj[1]] = []; }
+        query_results[i].map[obj[1]].push(obj);
       }
     }
 
     function build_obj(col, res_obj) {
-      return { model: results[col].model,
+      return { model: query_results[col].model,
                id: res_obj[0],
-               url: res_obj[1],
-               from: res_obj[2] };
+               from: res_obj[1] };
     }
 
     // add first column
-    for (var i=0; i<results[0].objects.length; i++) {
-      entries.push([build_obj(0, results[0].objects[i])]);
+    for (var i=0; i<query_results[0].objects.length; i++) {
+      entries.push([build_obj(0, query_results[0].objects[i])]);
     }
 
     // join rest of the columns
-    for (var col=1; col<results.length; col++) {
+    for (var col=1; col<query_results.length; col++) {
       var new_entries = [];
-      var column = results[col];
+      var column = query_results[col];
       var join_index = column.join_index;
 
       for (var i=0; i<entries.length; i++) {
@@ -149,7 +148,6 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
           var obj_id = entry.model+'.'+entry.id;
           if (object_cache[obj_id] === undefined) {
             var id_str = ''+entry.id;
-            if (entry.url) { id_str = '<a href="'+entry.url+'">'+entry.id+'</a>'; }
             object_cache[obj_id] = {id: {value: entry.id, display: id_str }};
           }
           entry['ptr'] = object_cache[obj_id];
@@ -192,7 +190,13 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     ptr['__fetched__'] = obj_data;
     for (var a in obj_data) {
       // already has id field with link, don't overwrite that
-      if (a !== 'id') {
+      if (a === 'id') {
+        var v = obj_data[a];
+        var s = ''+v;
+        if (obj_data['__url__']) { s = '<a href="'+obj_data['__url__']+'">'+v+'</a>'; }
+        ptr[a] = {value: v, display: s};
+      }
+      else if (a !== '__url__') {
         // for each field, we have a value, and a display value that is shown
         // to the user.
         var v = obj_data[a];
@@ -236,6 +240,9 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
           for (var i=0; i<results.objects.length; i++) {
             var obj_data = {};
             var values = results.objects[i];
+            // first member of values is URL
+            obj_data['__url__'] = values[0];
+            values = values.slice(1);
             for (var j=0; j<fields.length; j++) {
               obj_data[fields[j]] = values[j];
               if(Object.prototype.toString.call( values[j] ) === '[object Array]') {
@@ -554,7 +561,7 @@ function curiousJoinTable(results, set_table_cb, object_cache_f, get_objects_f) 
     if (models[query_idx].attrs.length == 1) {
       var old_attr = models[query_idx].attrs[0];
       var attrs = [];
-      for (var a in object) { if (a !== 'id') { attrs.push({name: a, visible: true}); } }
+      for (var a in object) { if (a !== 'id' && a !== '__url__') { attrs.push({name: a, visible: true}); } }
       attrs.sort(function(a, b) {
         if (a.name < b.name) { return -1; }
         else if (a.name > b.name) { return 1; }
