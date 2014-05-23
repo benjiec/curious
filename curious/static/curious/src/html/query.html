@@ -34,6 +34,10 @@
          ng-if="table.view.current_page*table.view.page_size+table.view.page_size < table.length">Next</a>
       &nbsp;
       <a href="javascript:void(0)" ng-click="toggleCSV()">CSV</a>
+      <a href="javascript:void(0)"
+       ng-click="table.createTable(true)" ng-if="table.left_join_mode === false">With Partial Rows</a>
+      <a href="javascript:void(0)"
+       ng-click="table.createTable(false)" ng-if="table.left_join_mode === true">Full Rows Only</a>
     </span>
   </div>
   <div ng-if="csv">
