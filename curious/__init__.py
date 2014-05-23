@@ -95,7 +95,7 @@ class ModelRegistry(object):
   def get_name(self, cls):
     managers = [m for m in self.__managers.values() if m.model_class == cls]
     if len(managers) == 0:
-      raise Exception("Unknown model '%s'" % cls)
+      return ModelManager.model_name(cls)
     manager = managers[0]
     if manager.short_name in self.__short_names and len(self.__short_names[manager.short_name]) == 1:
       return manager.short_name
