@@ -30,7 +30,8 @@ class TestBatchFetch(TestCase):
     results = json.loads(r.content)['result']
     self.assertEquals(results['fields'], ["id", "blog_id", "headline", "response_to_id"])
     self.assertItemsEqual(results['objects'],
-                          [[e.id,
+                          [[None, # url
+                            e.id,
                             [self.blog.__class__.__name__, self.blog.pk, self.blog.name, None],
                             e.headline,
                             None]
