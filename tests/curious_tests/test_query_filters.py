@@ -33,7 +33,7 @@ class TestQueryFilters(TestCase):
     # register model
     if len(model_registry.model_names) == 0:
       model_registry.register(curious_tests.models)
-      model_registry.add_custom_rel('Blog', 'authors')
+      model_registry.get_manager('Blog').allowed_relationships = ['authors']
 
   def test_implicit_filter(self):
     qs = 'Blog(%s) Blog.authors(name__icontains="Smith")' % self.blogs[0].pk

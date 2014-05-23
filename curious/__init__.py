@@ -1,3 +1,4 @@
+import inspect
 import types
 import django.db.models
 from .graph import _valid_django_rel
@@ -11,111 +12,93 @@ def deferred_to_real(objs):
   return model.objects.filter(pk__in=[obj.pk for obj in objs])
 
 
-class ModelRegistry(object):
-  def __init__(self):
-    self.__name_shortcuts = {}
-    self.__models = {}
-    self.__model_field_excludes = {}
-    self.__model_url_funcs = {}
+class ModelManager(object):
 
   @staticmethod
   def model_name(model_class):
     return '%s__%s' % (model_class._meta.app_label, model_class.__name__)
 
+  def __init__(self, model_class):
+    self.model_class = model_class
+    self.model_name = ModelManager.model_name(model_class)
+    self.short_name = model_class.__name__
+    self.allowed_relationships = []
+    self.disallowed_relationships = []
+    self.field_excludes = []
+    self.url_function = None
+
+  def is_rel_allowed(self, f):
+    if _valid_django_rel(getattr(self.model_class, f)) and not f in self.disallowed_relationships:
+      return True
+    return f in self.allowed_relationships
+
+  def url_of(self, obj):
+    if self.url_function is not None:
+      return self.url_function(obj)
+    return None
+
+  def getattr(self, method):
+    if not hasattr(self.model_class, method):
+      raise Exception('Unknown attribute "%s" in "%s"' % (method, self.model_name))
+    if not self.is_rel_allowed(method):
+      raise Exception('Not allowed to call "%s" in "%s"' % (method, self.model_name))
+    return getattr(self.model_class, method)
+
+
+class ModelRegistry(object):
+  def __init__(self):
+    self.__managers = {}
+    self.__short_names = {}
+
+  def __add_model_by_class(self, cls):
+    manager = ModelManager(cls)
+    if manager.model_name not in self.__managers:
+      self.__managers[manager.model_name] = manager
+      if manager.short_name not in self.__short_names:
+        self.__short_names[manager.short_name] = []
+      self.__short_names[manager.short_name].append(manager)
+
   def register(self, model):
     if type(model) == types.ModuleType:
       for name in dir(model):
         cls = getattr(model, name)
-        try:
-          if issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
-            model_name = ModelRegistry.model_name(cls)
-            if model_name not in self.__models:
-              self.__models[model_name] = dict(cls=cls, allowed=[], disallowed=[])
-              if cls.__name__ not in self.__name_shortcuts:
-                self.__name_shortcuts[cls.__name__] = []
-              self.__name_shortcuts[cls.__name__].append(model_name)
-        except:
-          pass
+        if inspect.isclass(cls) and issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
+          self.__add_model_by_class(cls)
     else:
       if model._meta.abstract is False:
-        model_name = ModelRegistry.model_name(model)
-        self.__models[model_name] = dict(cls=model, allowed=[], disallowed=[])
-        if model.__name__ not in self.__name_shortcuts:
-          self.__name_shortcuts[model.__name__] = []
-        self.__name_shortcuts[model.__name__].append(model_name)
+        self.__add_model_by_class(model)
 
-  def translate_name(self, name):
-    if name in self.__models:
+  def __translate_name(self, name):
+    if name in self.__managers:
       model_name = name
     else:
-      if name in self.__name_shortcuts:
-        if len(self.__name_shortcuts[name]) != 1:
+      if name in self.__short_names:
+        if len(self.__short_names[name]) != 1:
           raise Exception('Ambiguous model name "%s": can match to %s' %
-                          (name, ', '.join(self.__name_shortcuts[name])))
+                          (name, ', '.join(self.__short_names[name])))
         else:
-          model_name = self.__name_shortcuts[name][0]
+          model_name = self.__short_names[name][0].model_name
       else:
         raise Exception("Don't know about model %s" % name)
     return model_name
 
-  def add_custom_rel(self, name, rel):
-    model_name = self.translate_name(name)
-    self.__models[model_name]['allowed'].append(rel)
-
-  def disallow_rel(self, name, rel):
-    model_name = self.translate_name(name)
-    self.__models[model_name]['disallowed'].append(rel)
-
-  def add_model_url_func(self, name, f):
-    model_name = self.translate_name(name)
-    self.__model_url_funcs[model_name] = f
-
-  def add_model_field_exclude(self, name, f):
-    model_name = self.translate_name(name)
-    if model_name not in self.__model_field_excludes:
-      self.__model_field_excludes[model_name] = []
-    self.__model_field_excludes[model_name].append(f)
+  def get_manager(self, name):
+    model_name = self.__translate_name(name)
+    if model_name in self.__managers:
+      return self.__managers[model_name]
+    raise Exception("Unknown model '%s'" % model_name)
 
   @property
   def model_names(self):
-    return [k for k in self.__models]
+    return [m.model_name for m in self.__managers.values()]
 
-  def is_rel_allowed(self, cls, f):
-    model_name = ModelRegistry.model_name(cls)
-    if _valid_django_rel(getattr(cls, f)) and\
-       not f in self.__models[model_name]['disallowed']:
-      return True
-    return f in self.__models[model_name]['allowed']
-
-  def getclass(self, name):
-    model_name = self.translate_name(name)
-    return self.__models[model_name]['cls']
-
-  def getname(self, cls):
-    try:
-      model_name = self.translate_name(cls.__name__)
-      return cls.__name__
-    except:
-      return ModelRegistry.model_name(cls)
-
-  def geturl(self, name, obj):
-    model_name = self.translate_name(name)
-    if model_name in self.__model_url_funcs:
-      return self.__model_url_funcs[model_name](obj)
-    return None
-
-  def getexcludes(self, name):
-    model_name = self.translate_name(name)
-    if model_name in self.__model_field_excludes:
-      return self.__model_field_excludes[model_name]
-    return []
-
-  def getattr(self, name, method):
-    cls = self.getclass(name)
-    if not hasattr(cls, method):
-      raise Exception('Unknown attribute "%s" in "%s"' % (method, name))
-    if not self.is_rel_allowed(cls, method):
-      raise Exception('Not allowed to call "%s"' % method)
-    return getattr(cls, method)
+  def get_name(self, cls):
+    managers = [m for m in self.__managers.values() if m.model_class == cls]
+    if len(managers) == 0:
+      raise Exception("Unknown model '%s'" % cls)
+    manager = managers[0]
+    if manager.short_name in self.__short_names and len(self.__short_names[manager.short_name]) == 1:
+      return manager.short_name
+    return manager.model_name
 
 model_registry = ModelRegistry()

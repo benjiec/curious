@@ -35,9 +35,10 @@ class ModelView(JSONView):
 
   @staticmethod
   def model_to_dict(cls):
-    d = dict(model=cls.__name__, relationships=[])
+    model_name = model_registry.get_name(cls)
+    d = dict(model=model_name, relationships=[])
     for f in dir(cls):
-      if model_registry.is_rel_allowed(cls, f):
+      if model_registry.get_manager(model_name).is_rel_allowed(f):
         d['relationships'].append(f)
     return d
 
@@ -49,8 +50,8 @@ class ModelView(JSONView):
     fields = []
     fk = []
     obj = objects[0]
-    model_name = model_registry.getname(obj.__class__)
-    excludes = model_registry.getexcludes(model_name)
+    model_name = model_registry.get_name(obj.__class__)
+    excludes = model_registry.get_manager(model_name).field_excludes
 
     for f in obj._meta.fields:
       if f.column not in excludes:
@@ -59,7 +60,7 @@ class ModelView(JSONView):
 
     packed = []
     for obj in objects:
-      url = model_registry.geturl(model_name, obj)
+      url = model_registry.get_manager(model_name).url_of(obj)
       values = [url]
 
       for column, fk_name in zip(fields, fk):
@@ -69,9 +70,9 @@ class ModelView(JSONView):
         if fk_name is not None:
           v = getattr(obj, fk_name)
           if v is not None:
-            fk_model_name = model_registry.getname(v.__class__)
+            fk_model_name = model_registry.get_name(v.__class__)
             try:
-              url = model_registry.geturl(fk_model_name, v)
+              url = model_registry.get_manager(fk_model_name).url_of(v)
             except:
               url = None
             value = (fk_model_name, v.pk, str(v), url)
@@ -82,7 +83,7 @@ class ModelView(JSONView):
 
   def get(self, request, model_name):
     try:
-      cls = model_registry.getclass(model_name)
+      cls = model_registry.get_manager(model_name).model_class
     except Exception as e:
       return self._error(404, "Unknown model '%s': %s" % (model_name, str(e)))
     return self._return(200, ModelView.model_to_dict(cls))
@@ -102,7 +103,7 @@ class ModelView(JSONView):
       return self._error(400, "Missing ids array")
 
     try:
-      cls = model_registry.getclass(model_name)
+      cls = model_registry.get_manager(model_name).model_class
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
 
@@ -130,21 +131,21 @@ class ObjectView(JSONView):
       if type(f) == ForeignKey:
         v = getattr(obj, f.name)
         if v is not None:
-          model_name = model_registry.getname(v.__class__)
+          model_name = model_registry.get_name(v.__class__)
           d[f.column] = {
             'model': model_name,
             'id': v.pk,
             '__str__': str(v)
           }
           try:
-            d[f.column]['url'] = model_registry.geturl(model_name, v)
+            d[f.column]['url'] = model_registry.get_manager(model_name).url_of(v)
           except:
             pass
     return d
 
   def get(self, request, model_name, id):
     try:
-      cls = model_registry.getclass(model_name)
+      cls = model_registry.get_manager(model_name).model_class
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
     try:
@@ -186,7 +187,7 @@ class QueryView(JSONView):
           break
 
       if model is not None:
-        model_name = model_registry.getname(model)
+        model_name = model_registry.get_name(model)
       else:
         model_name = None
 
@@ -197,7 +198,7 @@ class QueryView(JSONView):
       results.append(d)
 
     if last_model is not None:
-      return dict(last_model=model_registry.getname(last_model),
+      return dict(last_model=model_registry.get_name(last_model),
                   results=results, computed_on=datetime.now())
     else:
       return dict(last_model=None,

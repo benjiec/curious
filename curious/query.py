@@ -37,9 +37,9 @@ class Query(object):
         model = rel['model']
         method = rel['method']
         if method is None:
-          model_registry.getclass(model)
+          model_registry.get_manager(model).model_class
         else:
-          model_registry.getattr(model, method)
+          model_registry.get_manager(model).getattr(method)
 
 
   def __validate(self):
@@ -57,12 +57,12 @@ class Query(object):
     filter_f = mk_filter_function(filters)
 
     if method is None:
-      cls = model_registry.getclass(model)
+      cls = model_registry.get_manager(model).model_class
       q = cls.objects.all()
       q = filter_f(q)
       return q
     else:
-      f = model_registry.getattr(model, method)
+      f = model_registry.get_manager(model).getattr(method)
       return f(filter_f)
 
 
@@ -98,7 +98,7 @@ class Query(object):
       t = type(obj_src[0][0])
       if t._deferred:
         t = t.__base__
-      if t != model_registry.getclass(model):
+      if t != model_registry.get_manager(model).model_class:
         raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
                         (model, type(obj_src[0][0])))
 
@@ -119,7 +119,7 @@ class Query(object):
     model = step['model']
     method = step['method']
     filters = step['filters']
-    step_f = model_registry.getattr(model, method)
+    step_f = model_registry.get_manager(model).getattr(method)
     need_terminal = 'collect' in step and step['collect'] == 'terminal'
 
     collected = []
@@ -173,7 +173,7 @@ class Query(object):
       model = step['model']
       method = step['method']
       filters = step['filters']
-      step_f = model_registry.getattr(model, method)
+      step_f = model_registry.get_manager(model).getattr(method)
       obj_src = Query._graph_step(obj_src, model, step_f, filters)
 
     else:
