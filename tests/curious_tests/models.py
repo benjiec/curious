@@ -30,6 +30,7 @@ class Blog(models.Model):
 class Author(models.Model):
   name = models.CharField(max_length=50)
   age = models.IntegerField(null=True)
+  friends = models.ManyToManyField('self')
 
   def __unicode__(self):
     return self.name

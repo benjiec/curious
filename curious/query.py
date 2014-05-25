@@ -127,7 +127,7 @@ class Query(object):
 
     if collect == 'search' and filters is None:
       return obj_src
-
+    
     to_remove = []
     if collect in ("all", "until", "search"):
       # if traversal or search, then keep starting nodes if starting nodes pass filter
@@ -151,8 +151,13 @@ class Query(object):
     if len(to_remove) > 0:
       obj_src = [tup for tup in obj_src if tup not in to_remove]
 
+    visited = []
     while len(obj_src) > 0:
-      next_obj_src = Query._graph_step(obj_src, model, step_f, filters)
+      # prevent loops by removing previously objects
+      new_src = [tup for tup in obj_src if tup[0].pk not in visited]
+      visited += [obj.pk for obj, src in obj_src]
+
+      next_obj_src = Query._graph_step(new_src, model, step_f, filters)
 
       if collect == 'terminal':
         next_demux = Query._graph_step([(obj, obj.pk) for obj, src in obj_src], model, step_f, filters)
