@@ -69,10 +69,12 @@ class ASTBuilder(NodeVisitor):
   def visit_nj_query(self, node, (one_rel, recursion)):
     if type(recursion) == list:
       one_rel['recursive'] = True
-      if recursion[0] is True:
+      if recursion[0] == '$':
         one_rel['collect'] = 'terminal'
+      elif recursion[0] == '?':
+        one_rel['collect'] = 'search'
       else:
-        one_rel['collect'] = 'intermediate'
+        one_rel['collect'] = 'traversal'
     return one_rel
 
   def visit_sub_query(self, node, (modifier, _1, q, _2)):
@@ -128,11 +130,8 @@ class ASTBuilder(NodeVisitor):
   def visit_filter_group(self, node, (_1, args, _2)):
     return args
 
-  def visit_recursion(self, node, (star, double_star)):
-    """Returns True if collecting terminal nodes, False if collecting intermediate nodes"""
-    if type(double_star) == list and double_star[0].text == '*':
-      return True
-    return False
+  def visit_recursion(self, node, _):
+    return node.text
 
   def visit_model(self, node, v):
     return v[0]

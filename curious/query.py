@@ -119,44 +119,57 @@ class Query(object):
     model = step['model']
     method = step['method']
     filters = step['filters']
+    collect = step['collect']
     step_f = model_registry.get_manager(model).getattr(method)
-    need_terminal = 'collect' in step and step['collect'] == 'terminal'
 
     collected = []
+    starting = True
 
-    if need_terminal is False:
-      # if getting all intermediate nodes, then also keep starting nodes
-      for tup in obj_src:
-        collected.append(tup)
+    if collect == 'search' and filters is None:
+      return obj_src
+
+    if collect in ("traversal", "search"):
+      # if traversal or search, then keep starting nodes if starting nodes pass filter
+      if filters in (None, {}, []):
+        for tup in obj_src:
+          collected.append(tup)
+      else:
+        filter_f = mk_filter_function(filters)
+        if len(obj_src) > 0:
+          ids = [obj.id for obj, src in obj_src]
+          q = obj_src[0][0].__class__.objects.filter(id__in=ids)
+          q = filter_f(q)
+          matched_objs = [obj.pk for obj in q]
+          for tup in obj_src:
+            if tup[0].pk in matched_objs:
+              collected.append(tup)
 
     while len(obj_src) > 0:
       next_obj_src = Query._graph_step(obj_src, model, step_f, filters)
 
-      if need_terminal and (filters is None or filters == []):
-        # traverse one step from last set of nodes
-        src = [(t[0], t[0].pk) for t in obj_src]
-        progressed = Query._graph_step(src, model, step_f, filters)
-        progressed = [t[1] for t in progressed]
+      if collect == 'terminal':
+        next_demux = Query._graph_step([(obj, obj.pk) for obj, src in obj_src], model, step_f, filters)
+        next_src = [t[1] for t in next_demux]
+
         for tup in obj_src:
-          # if we didn't progress, than collect
-          if tup[0].pk not in progressed:
+          if tup[0].pk not in next_src:
             if tup not in collected:
               collected.append(tup)
+        obj_src = next_obj_src
 
-      elif need_terminal:
-        # get all reachable objects, w/o filtering
+      elif collect == 'search':
         reachable = Query._graph_step(obj_src, model, step_f, None)
-        for tup in reachable:
-          if tup not in next_obj_src:
-            if tup not in collected:
-              collected.append(tup)
-
-      else: # need all intermediate
         for tup in next_obj_src:
           if tup not in collected:
             collected.append(tup)
+        obj_src = list(set(reachable)-set(next_obj_src))
 
-      obj_src = next_obj_src
+      else: # traversal
+        reachable = Query._graph_step(obj_src, model, step_f, None)
+        for tup in next_obj_src:
+          if tup not in collected:
+            collected.append(tup)
+        obj_src = reachable
 
     return collected
 
