@@ -128,7 +128,8 @@ class Query(object):
     if collect == 'search' and filters is None:
       return obj_src
 
-    if collect in ("traversal", "search"):
+    to_remove = []
+    if collect in ("all", "until", "search"):
       # if traversal or search, then keep starting nodes if starting nodes pass filter
       if filters in (None, {}, []):
         for tup in obj_src:
@@ -143,6 +144,12 @@ class Query(object):
           for tup in obj_src:
             if tup[0].pk in matched_objs:
               collected.append(tup)
+            elif collect == 'until':
+              # cannot continue to search with this starting node
+              to_remove.append(tup)
+
+    if len(to_remove) > 0:
+      obj_src = [tup for tup in obj_src if tup not in to_remove]
 
     while len(obj_src) > 0:
       next_obj_src = Query._graph_step(obj_src, model, step_f, filters)
@@ -163,6 +170,13 @@ class Query(object):
           if tup not in collected:
             collected.append(tup)
         obj_src = list(set(reachable)-set(next_obj_src))
+
+      elif collect == 'until':
+        reachable = Query._graph_step(obj_src, model, step_f, None)
+        for tup in next_obj_src:
+          if tup not in collected:
+            collected.append(tup)
+        obj_src = next_obj_src
 
       else: # traversal
         reachable = Query._graph_step(obj_src, model, step_f, None)

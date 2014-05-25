@@ -52,8 +52,55 @@ class TestQueryRecursive(TestCase):
     query = Query(qs)
     self.assertRaises(Exception, query)
 
-  def test_recursive_traversal(self):
+  def test_recursive_search_with_no_criteria(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") Entry.responses*' % self.blog.pk
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0],
+                            [(self.entries[0], None),
+                             (self.entries[1], None),
+                             (self.entries[2], None),
+                             (self.entries[3], None),
+                            ])
+    self.assertEquals(result[1], Entry)
+
+  def test_recursive_search_with_filter_finds_starting_node(self):
+    qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
+          Entry.responses(headline__icontains="MySQL")*' % self.blog.pk
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
+    self.assertEquals(result[1], Entry)
+
+  def test_recursive_search_with_filter_stops_traversal_after_mismatch(self):
+    qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
+          Entry.responses(headline__icontains="relational")*' % self.blog.pk
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0],
+                            [(self.entries[0], None),
+                             (self.entries[1], None)])
+    self.assertEquals(result[1], Entry)
+
+  def test_recursive_search_with_filter_does_not_return_starting_node_if_it_does_not_pass_filter(self):
+    qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
+          Entry.responses(headline__icontains="graph")*' % self.blog.pk
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result, ([], None))
+
+  def test_recursive_search_with_filter_does_not_contine_from_starting_node_if_it_does_not_pass_filter(self):
+    qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
+          Entry.responses(headline__icontains="Postgres")*' % self.blog.pk
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result, ([], None))
+
+  def test_recursive_traversal(self):
+    qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") Entry.responses**' % self.blog.pk
     query = Query(qs)
     result = query()
     self.assertEquals(result[0][0][1], -1)
@@ -67,7 +114,7 @@ class TestQueryRecursive(TestCase):
 
   def test_recursive_traversal_with_filter_finds_starting_node(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
-          Entry.responses(headline__icontains="MySQL")*' % self.blog.pk
+          Entry.responses(headline__icontains="MySQL")**' % self.blog.pk
     query = Query(qs)
     result = query()
     self.assertEquals(result[0][0][1], -1)
@@ -76,7 +123,7 @@ class TestQueryRecursive(TestCase):
 
   def test_recursive_traversal_with_filter_continues_traversal_after_mismatch(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
-          Entry.responses(headline__icontains="relational")*' % self.blog.pk
+          Entry.responses(headline__icontains="relational")**' % self.blog.pk
     query = Query(qs)
     result = query()
     self.assertEquals(result[0][0][1], -1)
@@ -89,7 +136,7 @@ class TestQueryRecursive(TestCase):
 
   def test_recursive_traversal_with_filter_does_not_return_starting_node_if_it_does_not_pass_filter(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
-          Entry.responses(headline__icontains="graph")*' % self.blog.pk
+          Entry.responses(headline__icontains="graph")**' % self.blog.pk
     query = Query(qs)
     result = query()
     self.assertEquals(result[0][0][1], -1)

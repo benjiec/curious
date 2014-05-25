@@ -12,7 +12,7 @@ id_arg       = "(" space* id space* ")"
 
 # different ways to recursively search
 
-recursion    = "*" / "$" / "?"
+recursion    = "**" / "*" / "$" / "?"
 
 # steps for query can be a single step, possibly joining with previous step, or
 # a subquery, or an or query

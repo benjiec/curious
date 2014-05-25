@@ -73,8 +73,10 @@ class ASTBuilder(NodeVisitor):
         one_rel['collect'] = 'terminal'
       elif recursion[0] == '?':
         one_rel['collect'] = 'search'
+      elif recursion[0] == '*':
+        one_rel['collect'] = 'until'
       else:
-        one_rel['collect'] = 'traversal'
+        one_rel['collect'] = 'all'
     return one_rel
 
   def visit_sub_query(self, node, (modifier, _1, q, _2)):
