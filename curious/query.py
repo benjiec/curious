@@ -1,3 +1,4 @@
+import time
 from curious import model_registry
 from curious.graph import traverse, mk_filter_function
 from .parser import Parser
@@ -122,7 +123,7 @@ class Query(object):
     collect = step['collect']
     step_f = model_registry.get_manager(model).getattr(method)
 
-    collected = []
+    collected = {}
     starting = True
 
     if collect == 'search' and filters is None:
@@ -133,17 +134,17 @@ class Query(object):
       # if traversal or search, then keep starting nodes if starting nodes pass filter
       if filters in (None, {}, []):
         for tup in obj_src:
-          collected.append(tup)
+          collected[tup] = 1
       else:
         filter_f = mk_filter_function(filters)
         if len(obj_src) > 0:
           ids = [obj.id for obj, src in obj_src]
           q = obj_src[0][0].__class__.objects.filter(id__in=ids)
           q = filter_f(q)
-          matched_objs = [obj.pk for obj in q]
+          matched_objs = {obj.pk: 1 for obj in q}
           for tup in obj_src:
             if tup[0].pk in matched_objs:
-              collected.append(tup)
+              collected[tup] = 1
             elif collect == 'until':
               # cannot continue to search with this starting node
               to_remove.append(tup)
@@ -151,11 +152,13 @@ class Query(object):
     if len(to_remove) > 0:
       obj_src = [tup for tup in obj_src if tup not in to_remove]
 
-    visited = []
+    visited = {}
+
     while len(obj_src) > 0:
       # prevent loops by removing previously objects
       new_src = [tup for tup in obj_src if tup[0].pk not in visited]
-      visited += [obj.pk for obj, src in obj_src]
+      for obj, src in obj_src:
+        visited[obj.pk] = 1
 
       next_obj_src = Query._graph_step(new_src, model, step_f, filters)
 
@@ -166,31 +169,32 @@ class Query(object):
         for tup in obj_src:
           if tup[0].pk not in next_src:
             if tup not in collected:
-              collected.append(tup)
+              collected[tup] = 1
         obj_src = next_obj_src
 
       elif collect == 'search':
         reachable = Query._graph_step(obj_src, model, step_f, None)
         for tup in next_obj_src:
           if tup not in collected:
-            collected.append(tup)
+            collected[tup] = 1
         obj_src = list(set(reachable)-set(next_obj_src))
 
       elif collect == 'until':
         reachable = Query._graph_step(obj_src, model, step_f, None)
+        t = time.time()
         for tup in next_obj_src:
           if tup not in collected:
-            collected.append(tup)
+            collected[tup] = 1
         obj_src = next_obj_src
 
       else: # traversal
         reachable = Query._graph_step(obj_src, model, step_f, None)
         for tup in next_obj_src:
           if tup not in collected:
-            collected.append(tup)
+            collected[tup] = 1
         obj_src = reachable
 
-    return collected
+    return collected.keys()
 
 
   @staticmethod
