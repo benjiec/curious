@@ -54,19 +54,36 @@ class ASTBuilder(NodeVisitor):
       steps.append(s)
     return steps
 
-  def visit_nj_steps(self, *args):
-    return self.visit_steps(*args)
-
   def visit_step(self, node, q):
     return q[0]
 
   def visit_another_step(self, node, (_1, step)):
     return step
 
-  def visit_more_nj(self, node, (_1, nj_step)):
+  def visit_nj_steps(self, *args):
+    return self.visit_steps(*args)
+
+  def visit_another_nj(self, node, (_1, nj_step)):
     return nj_step
 
-  def visit_nj_query(self, node, (one_rel, recursion)):
+  def visit_join_query(self, node, (join, _1, nj_query)):
+    if type(join) == list:
+      nj_query['join'] = True
+    return nj_query
+
+  def visit_nj_query(self, node, q):
+    return q[0]
+
+  def visit_or_query(self, node, (_1, nj_steps_1, _2, _s1, _3, _s2, _4, nj_steps_2, _5, more_ors)):
+    r = dict(orquery=[nj_steps_1, nj_steps_2], join=False)
+    if type(more_ors) == list:
+      r['orquery'].extend(more_ors)
+    return r
+
+  def visit_another_or(self, node, (_s1, _1, _s2, _2, nj_steps, _3)):
+    return nj_steps
+
+  def visit_one_query(self, node, (one_rel, recursion)):
     if type(recursion) == list:
       one_rel['recursive'] = True
       if recursion[0] == '$':
@@ -79,35 +96,19 @@ class ASTBuilder(NodeVisitor):
         one_rel['collect'] = 'all'
     return one_rel
 
-  def visit_sub_query(self, node, (modifier, _1, q, _2)):
-    join = False
-    having = None
-    if type(modifier) == list:
-      having = modifier[0]
-    return dict(subquery=q, having=having, join=join)
-
-  def visit_or_query(self, node, (join, _0, _1, nj_steps_1, _2, _s1, _3, _s2, _4, nj_steps_2, _5, more_ors)):
-    r = dict(orquery=[nj_steps_1, nj_steps_2], join=False)
-    if type(join) == list:
-      r['join'] = True
-    if type(more_ors) == list:
-      r['orquery'].extend(more_ors)
-    return r
-
-  def visit_more_ors(self, node, (_s1, _1, _s2, _2, nj_steps, _3)):
-    return nj_steps
-
-  def visit_one_query(self, node, (join, _1, one_rel, recursion)):
-    if type(join) == list:
-      one_rel['join'] = True
-    return self.visit_nj_query(node, (one_rel, recursion))
-
   def visit_one_rel(self, node, (model, _1, method, filters)):
     if type(filters) != list:
       filters = None
     else:
       filters = filters[0]
     return dict(model=model, method=method, filters=filters)
+
+  def visit_sub_query(self, node, (modifier, _1, q, _2)):
+    join = False
+    having = None
+    if type(modifier) == list:
+      having = modifier[0]
+    return dict(subquery=q, having=having, join=join)
 
   def visit_filters(self, node, (f, more_filters)):
     filters = []
@@ -157,7 +158,7 @@ class ASTBuilder(NodeVisitor):
   def visit_another_arg(self, node, (_1, comma, _2, arg)):
     return arg
 
-  def visit_modifier(self, node, _):
+  def visit_sub_modifier(self, node, _):
     return node.text
 
   def visit_identifier(self, node, _):

@@ -15,23 +15,26 @@ id_arg       = "(" space* id space* ")"
 recursion    = "**" / "*" / "$" / "?"
 
 # steps for query can be a single step, possibly joining with previous step, or
-# a subquery, or an or query
+# a subquery. a single step can be a single relationship, or an OR.
+
+step         = join_query / sub_query
+join         = ","
+join_query   = join? space* nj_query
+nj_query     = one_query / or_query
 
 steps        = step another_step*
 another_step = space* step
-step         = one_query / or_query / sub_query
-sub_query    = modifier? "(" nj_steps ")"
-modifier     = "+" / "-" / "?"
-one_query    = join? space* one_rel recursion?
-join         = ","
-or_query     = join? space* "(" nj_steps ")" space* "|" space* "(" nj_steps ")" more_ors*
-more_ors     = space* "|" space* "(" nj_steps ")"
+nj_steps     = nj_query another_nj*
+another_nj   = space* nj_query
 
-# steps for subquery, no joining or subquery allowed
+sub_modifier = "+" / "-" / "?"
+# cannot do joins in sub queries
+sub_query    = sub_modifier? "(" nj_steps ")"
 
-nj_steps     = nj_query more_nj*
-more_nj      = space* nj_query
-nj_query     = one_rel recursion?
+one_query    = one_rel recursion?
+# cannot do joins in or queries
+or_query     = "(" nj_steps ")" space* "|" space* "(" nj_steps ")" another_or*
+another_or   = space* "|" space* "(" nj_steps ")"
 
 # single relationship
 
