@@ -238,9 +238,17 @@ class Query(object):
       assert(len(subquery_res) == 1)
       subquery_res = subquery_res[-1][0]
 
+    subq_res_map = {}
+    for sub_obj, sub_src in subquery_res:
+      if sub_src not in subq_res_map:
+        subq_res_map[sub_src] = []
+      subq_res_map[sub_src].append(sub_obj)
+
     keep = []
     for obj, src in obj_src:
-      result_from_subq = [sub_obj for sub_obj, sub_src in subquery_res if sub_src == obj.pk]
+      result_from_subq = []
+      if obj.pk in subq_res_map:
+        result_from_subq = subq_res_map[obj.pk]
 
       if len(result_from_subq) > 0: # subquery has result
         # if no modifier to subquery, or said should have subquery results ('+' or '?')
