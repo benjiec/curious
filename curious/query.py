@@ -327,6 +327,7 @@ class Query(object):
       if 'orquery' in step:
         print 'orquery %s' % step
         obj_src = Query._or(obj_src, step)
+        more_results = True
 
       elif 'subquery' in step:
         print 'subquery %s' % step

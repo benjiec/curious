@@ -52,6 +52,23 @@ class TestSubQueries(TestCase):
     self.assertEquals(len(result[0]), 2)
     self.assertEquals(result[1], Author)
 
+  def test_joining_with_or_queries_at_the_end(self):
+    qs = 'Blog(%s), ' % self.blogs[0].pk +\
+         '(Blog.entry_set(headline__icontains="MySQL")) | (Blog.entry_set(headline__icontains="Postgres"))'
+    query = Query(qs)
+    result = query()
+
+    self.assertEquals(len(result[0]), 2)
+
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
+
+    self.assertEquals(result[0][1][1], 0)
+    assertQueryResultsEqual(self, result[0][1][0], [(self.entries[0], self.blogs[0].pk),
+                                                    (self.entries[1], self.blogs[0].pk)])
+
+    self.assertEquals(result[1], Entry)
+
   def test_joining_with_or_queries(self):
     qs = 'Blog(%s), ' % self.blogs[0].pk +\
          '(Blog.entry_set(headline__icontains="MySQL")) | (Blog.entry_set(headline__icontains="Postgres")), '+\
