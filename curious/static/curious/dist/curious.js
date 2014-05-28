@@ -239,10 +239,10 @@ function curiousJoinTable(query_results, set_table_cb, object_cache_f, get_objec
           var fields = results.fields;
           for (var i=0; i<results.objects.length; i++) {
             var obj_data = {};
+            // set URL
+            obj_data['__url__'] = results.urls[i];
+            // get object values
             var values = results.objects[i];
-            // first member of values is URL
-            obj_data['__url__'] = values[0];
-            values = values.slice(1);
             for (var j=0; j<fields.length; j++) {
               obj_data[fields[j]] = values[j];
               if(Object.prototype.toString.call( values[j] ) === '[object Array]') {

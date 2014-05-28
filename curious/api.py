@@ -59,9 +59,10 @@ class ModelView(JSONView):
         fk.append(f.name if type(f) == ForeignKey else None)
 
     packed = []
+    urls = []
     for obj in objects:
       url = model_registry.get_manager(model_name).url_of(obj)
-      values = [url]
+      values = []
 
       for column, fk_name in zip(fields, fk):
         value = getattr(obj, column)
@@ -77,9 +78,11 @@ class ModelView(JSONView):
               url = None
             value = (fk_model_name, v.pk, str(v), url)
         values.append(value)
+
+      urls.append(url)
       packed.append(values)
 
-    return dict(fields=fields, objects=packed)
+    return dict(fields=fields, objects=packed, urls=urls)
 
   def get(self, request, model_name):
     try:
