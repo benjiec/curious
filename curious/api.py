@@ -198,11 +198,9 @@ class QueryView(JSONView):
       results.append(d)
 
     if last_model is not None:
-      return dict(last_model=model_registry.get_name(last_model),
-                  results=results, computed_on=datetime.now())
-    else:
-      return dict(last_model=None,
-                  results=results, computed_on=datetime.now())
+      last_model = model_registry.get_name(last_model)
+
+    return dict(last_model=last_model, results=results, computed_on=datetime.now())
 
   @report_time
   def get(self, request):
@@ -233,6 +231,16 @@ class QueryView(JSONView):
     if t.seconds > 300:
       results['computed_since'] = str(naturaltime(results['computed_on']))
     results['computed_on'] = str(results['computed_on'])
+
+    # data mode
+    objects = []
+    if 'd' in request.GET:
+      for result in results['results']:
+        model = model_registry.get_manager(result['model']).model_class
+        objs = model.objects.filter(pk__in=[t[0] for t in result['objects']])
+        objs = ModelView.objects_to_dict(objs)
+        objects.append(objs)
+      results['data'] = objects
 
     # print results
     return self._return(200, results)
