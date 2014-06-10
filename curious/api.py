@@ -69,7 +69,7 @@ class ModelView(JSONView):
     packed = []
     urls = []
     for obj in objects:
-      url = model_registry.get_manager(model_name).url_of(obj)
+      obj_url = model_registry.get_manager(model_name).url_of(obj)
       values = []
 
       for column, fk_name in zip(fields, fk):
@@ -84,14 +84,15 @@ class ModelView(JSONView):
           v = getattr(obj, fk_name)
           if v is not None:
             fk_model_name = model_registry.get_name(v.__class__)
+            fk_url = None
             try:
-              url = model_registry.get_manager(fk_model_name).url_of(v)
+              fk_url = model_registry.get_manager(fk_model_name).url_of(v)
             except:
-              url = None
-            value = (fk_model_name, v.pk, str(v), url)
+              fk_url = None
+            value = (fk_model_name, v.pk, str(v), fk_url)
         values.append(value)
 
-      urls.append(url)
+      urls.append(obj_url)
       packed.append(values)
 
     return dict(fields=fields, objects=packed, urls=urls)
