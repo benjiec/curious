@@ -16,7 +16,9 @@ class ModelManager(object):
 
   @staticmethod
   def model_name(model_class):
-    return '%s__%s' % (model_class._meta.app_label, model_class.__name__)
+    if hasattr(model_class, '_meta'):
+      return '%s__%s' % (model_class._meta.app_label, model_class.__name__)
+    return model_class.__name__
 
   def __init__(self, model_class):
     self.model_class = model_class
@@ -65,7 +67,7 @@ class ModelRegistry(object):
         if inspect.isclass(cls) and issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
           self.__add_model_by_class(cls)
     else:
-      if model._meta.abstract is False:
+      if not hasattr(model, '_meta') or model._meta.abstract is False:
         self.__add_model_by_class(model)
 
   def __translate_name(self, name):

@@ -110,15 +110,21 @@ class ModelView(JSONView):
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
 
-    fks = []
-    for f in cls._meta.fields:
-      if type(f) == ForeignKey:
-        fks.append(f.name)
+    if hasattr(cls, '_meta'):
+      fks = []
+      for f in cls._meta.fields:
+        if type(f) == ForeignKey:
+          fks.append(f.name)
 
-    q = cls.objects.filter(id__in=data['ids'])
-    if len(fks) > 0:
-      q = q.select_related(*fks)
-    r = ModelView.objects_to_dict(list(q))
+      q = cls.objects.filter(id__in=data['ids'])
+      if len(fks) > 0:
+        q = q.select_related(*fks)
+      r = ModelView.objects_to_dict(list(q))
+
+    else:
+      objs = cls.fetch(data['ids'])
+      r = ModelView.objects_to_dict(objs)
+
     return self._return(200, r)
 
 
@@ -185,7 +191,7 @@ class QueryView(JSONView):
       for obj, src in obj_src:
         if obj is not None:
           model = obj.__class__
-          if model._deferred:
+          if hasattr(model, '_deferred') and model._deferred:
             model = model.__base__
           break
 
@@ -200,6 +206,7 @@ class QueryView(JSONView):
           }
       results.append(d)
 
+    print results
     if last_model is not None:
       last_model = model_registry.get_name(last_model)
 

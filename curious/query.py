@@ -364,7 +364,7 @@ class Query(object):
     for obj, src in obj_src:
       if obj is not None:
         t = obj.__class__
-        if t._deferred:
+        if hasattr(t, '_deferred') and t._deferred:
           t = t.__base__
         break
 
