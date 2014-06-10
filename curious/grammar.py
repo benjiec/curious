@@ -11,6 +11,10 @@ filter_or_id = id_arg / filters
 id_arg       = "(" space* id space* ")"
 
 # different ways to recursively search
+# *  = searches until looping criteria fails, return all items
+# ** = searches exhaustively, return all items matching criteria
+# $  = returns last nodes passing criteria
+# ?  = searches for and returns first node passing criteria
 
 recursion    = "**" / "*" / "$" / "?"
 
