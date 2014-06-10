@@ -49,14 +49,22 @@ class ModelView(JSONView):
 
     fields = []
     fk = []
+    is_model = True
+
     obj = objects[0]
     model_name = model_registry.get_name(obj.__class__)
     excludes = model_registry.get_manager(model_name).field_excludes
 
-    for f in obj._meta.fields:
-      if f.column not in excludes:
-        fields.append(f.column)
-        fk.append(f.name if type(f) == ForeignKey else None)
+    if hasattr(obj, '_meta'):
+      for f in obj._meta.fields:
+        if f.column not in excludes:
+          fields.append(f.column)
+          fk.append(f.name if type(f) == ForeignKey else None)
+    else:
+      is_model = False
+      for f in obj.fields():
+        fields.append(f)
+        fk.append(None)
 
     packed = []
     urls = []
@@ -65,7 +73,11 @@ class ModelView(JSONView):
       values = []
 
       for column, fk_name in zip(fields, fk):
-        value = getattr(obj, column)
+        if is_model:
+          value = getattr(obj, column)
+        else:
+          value = obj.get(column)
+
         if not type(value) in (long, int, float, bool, types.NoneType):
           value = unicode(value)
         if fk_name is not None:
@@ -206,7 +218,6 @@ class QueryView(JSONView):
           }
       results.append(d)
 
-    print results
     if last_model is not None:
       last_model = model_registry.get_name(last_model)
 
