@@ -259,7 +259,11 @@ class QueryView(JSONView):
     if 'd' in request.GET:
       for result in results['results']:
         model = model_registry.get_manager(result['model']).model_class
-        objs = model.objects.filter(pk__in=[t[0] for t in result['objects']])
+        ids = [t[0] for t in result['objects']]
+        if hasattr(model, '_meta'):
+          objs = model.objects.filter(pk__in=ids)
+        else:
+          objs = model.fetch(ids)
         objs = ModelView.objects_to_dict(objs)
         objects.append(objs)
       results['data'] = objects
