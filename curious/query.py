@@ -97,7 +97,7 @@ class Query(object):
     # check if type matches existing object type
     if len(obj_src):
       t = type(obj_src[0][0])
-      if t._deferred:
+      if hasattr(t, '_deferred') and t._deferred:
         t = t.__base__
       if t != model_registry.get_manager(model).model_class:
         raise Exception('Type mismatch when executing query: expecting "%s", got "%s"' %
