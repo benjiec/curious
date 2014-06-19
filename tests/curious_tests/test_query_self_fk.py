@@ -36,10 +36,11 @@ class TestQueryFkToSelf(TestCase):
     for i, entry in enumerate(self.entries):
       entry.authors.add(self.authors[i])
 
-    # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(curious_tests.models)
+    model_registry.register(curious_tests.models)
     
+  def tearDown(self):
+    model_registry.clear()
+
   def test_fk_to_self(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="Postgres") Entry.response_to' % self.blog.pk
     query = Query(qs)

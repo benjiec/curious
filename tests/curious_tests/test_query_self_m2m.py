@@ -31,9 +31,10 @@ class TestQueryM2M(TestCase):
     for i, author in enumerate(self.authors):
       author.friends.add(self.authors[(i+1)%len(self.authors)])
 
-    # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(curious_tests.models)
+    model_registry.register(curious_tests.models)
+
+  def tearDown(self):
+    model_registry.clear()
 
   def test_query_with_m2m_relationship(self):
     qs = 'Blog(%s) Blog.entry_set Entry.authors Author.friends' % self.blogs[0].pk

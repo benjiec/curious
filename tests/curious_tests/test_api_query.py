@@ -20,8 +20,10 @@ class TestQueryAPI(TestCase):
       entry.save()
 
     # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(curious_tests.models)
+    model_registry.register(curious_tests.models)
+
+  def tearDown(self):
+    model_registry.clear()
 
   def test_query(self):
     r = self.client.get('/curious/q/', dict(q='Blog(%s) Blog.entry_set' % self.blog.pk))

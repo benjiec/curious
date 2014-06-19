@@ -29,10 +29,11 @@ class TestSimpleQueries(TestCase):
       entry.authors.add(self.authors[i])
       entry.authors.add(self.authors[(i+1)%len(self.authors)])
 
-    # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(curious_tests.models)
-      model_registry.get_manager('Blog').allowed_relationships = ['authors']
+    model_registry.register(curious_tests.models)
+    model_registry.get_manager('Blog').allowed_relationships = ['authors']
+
+  def tearDown(self):
+    model_registry.clear()
 
   def test_query_starting_with_id(self):
     qs = 'Entry(%s)' % self.entries[0].pk

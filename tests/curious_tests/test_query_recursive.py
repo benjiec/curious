@@ -36,9 +36,7 @@ class TestQueryRecursive(TestCase):
     for i, entry in enumerate(self.entries):
       entry.authors.add(self.authors[i])
 
-    # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(curious_tests.models)
+    model_registry.register(curious_tests.models)
     
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL")' % self.blog.pk
     query = Query(qs)
@@ -46,6 +44,9 @@ class TestQueryRecursive(TestCase):
     self.assertEquals(result[0][0][1], -1)
     assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
+
+  def tearDown(self):
+    model_registry.clear()
 
   def test_cannot_recursive_search_using_relationship_to_different_model(self):
     qs = 'Blog(%s) Blog.entry_set*' % self.blog.pk

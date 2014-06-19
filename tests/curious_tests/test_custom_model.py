@@ -45,10 +45,12 @@ class TestCustomModel(TestCase):
     Blog.blog_to_my_models_ = blog_to_my_models_
 
     # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(Blog)
-      model_registry.register(MyModel)
-      model_registry.get_manager('Blog').allowed_relationships = ['blog_to_my_models_']
+    model_registry.register(Blog)
+    model_registry.register(MyModel)
+    model_registry.get_manager('Blog').allowed_relationships = ['blog_to_my_models_']
+
+  def tearDown(self):
+    model_registry.clear()
 
   def test_query_starting_with_id(self):
     qs = 'Blog(%s)' % self.blog.pk

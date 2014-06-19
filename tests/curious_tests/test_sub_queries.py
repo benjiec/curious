@@ -34,9 +34,10 @@ class TestSubQueries(TestCase):
       entry.authors.add(self.authors[i])
       entry.authors.add(self.authors[(i+1)%len(self.authors)])
 
-    # register model
-    if len(model_registry.model_names) == 0:
-      model_registry.register(curious_tests.models)
+    model_registry.register(curious_tests.models)
+
+  def tearDown(self):
+    model_registry.clear()
 
   def test_join_queries(self):
     qs = 'Blog(%s) Blog.entry_set, Entry.authors' % self.blogs[0].pk

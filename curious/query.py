@@ -319,10 +319,11 @@ class Query(object):
 
       if ('join' in step and step['join'] is True) or\
          ('subquery' in step and (step['having'] is None or step['having'] == '?')):
-        res.append((obj_src, last_non_sub_index))
-        last_non_sub_index = len(res)-1
-        more_results = False
-        obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
+        if more_results:
+          res.append((obj_src, last_non_sub_index))
+          last_non_sub_index = len(res)-1
+          more_results = False
+          obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
 
       if 'orquery' in step:
         print 'orquery %s' % step

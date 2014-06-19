@@ -49,6 +49,9 @@ class ModelManager(object):
 
 class ModelRegistry(object):
   def __init__(self):
+    self.clear()
+
+  def clear(self):
     self.__managers = {}
     self.__short_names = {}
 
