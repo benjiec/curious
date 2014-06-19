@@ -19,7 +19,7 @@
 </p>
 
 <div id="results-header">
-  <div ng-if="!csv">
+  <div ng-class="!csv ? 'show' : 'hidden'">
     <span class="page-summary">
       {{ table.view.current_page*table.view.page_size+1 }}-{{ table.view.current_page*table.view.page_size+table.view.getCurrentItems().length }}/{{ table.length }}
       row(s) of <b>{{ last_model }}</b>
@@ -40,7 +40,7 @@
        ng-click="table.createTable(false)" ng-if="table.left_join_mode === true">Full Rows Only</a>
     </span>
   </div>
-  <div ng-if="csv">
+  <div ng-class="csv ? 'show' : 'hidden'">
     <a href="javascript:void(0)" ng-click="toggleCSV()">Table</a>
   </div>
 
