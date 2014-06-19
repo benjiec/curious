@@ -1,5 +1,6 @@
 import json
 import types
+from decimal import Decimal
 from datetime import datetime
 from humanize import naturaltime
 from django.core.cache import cache
@@ -78,7 +79,9 @@ class ModelView(JSONView):
         else:
           value = obj.get(column)
 
-        if not type(value) in (long, int, float, bool, types.NoneType):
+        if type(value) is Decimal:
+          value = float(value)
+        elif not type(value) in (long, int, float, bool, types.NoneType):
           value = unicode(value)
         if fk_name is not None:
           v = getattr(obj, fk_name)
