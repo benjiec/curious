@@ -81,7 +81,8 @@
   </div> <!-- navbar-right -->
 </div>
 
-<table class="table table-condensed table-striped table-bordered table-fixed" ng-if="table.attrs && !csv">
+<div ng-class="(table.attrs && !csv) ? 'show' : 'hidden'">
+<table class="table table-condensed table-striped table-bordered table-fixed">
   <tr class="success">
     <td class="id"></td>
     <td class="wrap" ng-repeat="q in table.queries track by $index" colspan="{{ q.cols }}">
@@ -172,7 +173,10 @@
     </td>
   </tr>
 </table>
+</div>
 
-<textarea class="csv" ng-if="csv" readonly>{{ table.csv }}</textarea>
+<div ng-class="csv ? 'show' : 'hidden'">
+<textarea class="csv" readonly>{{ table.csv }}</textarea>
+</div>
 
 </div> <!-- if for results table -->
