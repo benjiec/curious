@@ -44,7 +44,7 @@ class ModelView(JSONView):
     return d
 
   @staticmethod
-  def objects_to_dict(objects):
+  def objects_to_dict(objects, ignore_excludes=False):
     if len(objects) == 0:
       return dict(fields=[], objects=[])
 
@@ -54,7 +54,10 @@ class ModelView(JSONView):
 
     obj = objects[0]
     model_name = model_registry.get_name(obj.__class__)
-    excludes = model_registry.get_manager(model_name).field_excludes
+    if ignore_excludes is True:
+      excludes = []
+    else:
+      excludes = model_registry.get_manager(model_name).field_excludes
 
     if hasattr(obj, '_meta'):
       for f in obj._meta.fields:
@@ -135,11 +138,11 @@ class ModelView(JSONView):
       q = cls.objects.filter(id__in=data['ids'])
       if len(fks) > 0:
         q = q.select_related(*fks)
-      r = ModelView.objects_to_dict(list(q))
+      r = ModelView.objects_to_dict(list(q), 'x' in data)
 
     else:
       objs = cls.fetch(data['ids'])
-      r = ModelView.objects_to_dict(objs)
+      r = ModelView.objects_to_dict(objs, 'x' in data)
 
     return self._return(200, r)
 
@@ -267,7 +270,7 @@ class QueryView(JSONView):
           objs = model.objects.filter(pk__in=ids)
         else:
           objs = model.fetch(ids)
-        objs = ModelView.objects_to_dict(objs)
+        objs = ModelView.objects_to_dict(objs, 'x' in request.GET)
         objects.append(objs)
       results['data'] = objects
 
