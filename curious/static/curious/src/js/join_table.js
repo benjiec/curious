@@ -2,7 +2,7 @@
 // structure that angular template can easily use to display the objects and
 // their attributes.
 
-function curiousJoinTable(query_results, set_table_cb, object_cache_f, get_objects_f) {
+function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_objects_f) {
   // Constructor:
   //   query_results  - array of search results, each result has a model and a
   //                    list of object output input tuples
@@ -29,6 +29,14 @@ function curiousJoinTable(query_results, set_table_cb, object_cache_f, get_objec
 
   // get reference to object cache once
   var object_cache = object_cache_f();
+
+  // get rid of empty columns
+  var query_results = [];
+  for (var i=0; i<query_results_raw.length; i++) {
+    if (query_results_raw[i].model && query_results_raw[i].objects.length > 0) {
+      query_results.push(query_results_raw[i]);
+    }
+  }
 
   function process_results(lj) {
     left_join_mode = lj;

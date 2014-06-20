@@ -13,7 +13,6 @@ from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django.db.models.fields.related import ForeignRelatedObjectsDescriptor
 from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor
-from .utils import report_time
 
 
 def mk_filter_function(filters):
@@ -155,7 +154,6 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
   return get_related_objects
 
 
-@report_time
 def traverse(nodes, attr, filters=None):
   """
   Traverse one relationship on list of nodes. Returns output, input tuple
@@ -173,7 +171,6 @@ def traverse(nodes, attr, filters=None):
   f = get_related_obj_accessor(attr, nodes[0])
   nodes = f(nodes, filters=filters)
 
-  @report_time
   def _execute(nodes):
     return list(nodes)
   nodes = _execute(nodes)

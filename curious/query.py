@@ -328,30 +328,25 @@ class Query(object):
       if 'orquery' in step:
         print 'orquery %s' % step
         obj_src = Query._or(obj_src, step)
+        print 'completed orquery'
         more_results = True
 
       elif 'subquery' in step:
         print 'subquery %s' % step
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
+        print 'completed subquery'
 
         if step['having'] is None or step['having'] == '?': 
-          # if there are no results at all, then skip
-          has_result = False
-          for obj, src in subquery_res:
-            if obj is not None:
-              has_result = True
-              break
-
-          if has_result:
-            # add subquery result to results
-            res.append((subquery_res, last_non_sub_index))
-            # don't increase last_non_sub_index, so caller knows next query
-            # should still join with the last non sub query results.
-            more_results = False
+          # add subquery result to results, even if there are no results from subquery
+          res.append((subquery_res, last_non_sub_index))
+          # don't increase last_non_sub_index, so caller knows next query
+          # should still join with the last non sub query results.
+          more_results = False
 
       else:
         print 'query: %s' % step
         obj_src = Query._rel_step(obj_src, step)
+        print 'completed query'
         more_results = True
 
     if len(obj_src) == 0:
