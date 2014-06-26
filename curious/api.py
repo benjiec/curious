@@ -44,7 +44,7 @@ class ModelView(JSONView):
     return d
 
   @staticmethod
-  def objects_to_dict(objects, ignore_excludes=False):
+  def objects_to_dict(objects, ignore_excludes=False, follow_fk=True):
     if len(objects) == 0:
       return dict(fields=[], objects=[])
 
@@ -86,7 +86,7 @@ class ModelView(JSONView):
           value = float(value)
         elif not type(value) in (long, int, float, bool, types.NoneType):
           value = unicode(value)
-        if fk_name is not None:
+        if fk_name is not None and follow_fk is True:
           v = getattr(obj, fk_name)
           if v is not None:
             fk_model_name = model_registry.get_name(v.__class__)
@@ -236,6 +236,7 @@ class QueryView(JSONView):
       return self._error(400, 'Missing query')
 
     q = request.GET['q']
+    print q
 
     try:
       query = Query(q)
@@ -263,6 +264,10 @@ class QueryView(JSONView):
     # data mode
     objects = []
     if 'd' in request.GET:
+      follow_fk = True
+      if 'fk' in request.GET and request.GET['fk'] in ('0','false'):
+        follow_fk = False
+      t0 = datetime.now()
       for result in results['results']:
         if result['model']:
           model = model_registry.get_manager(result['model']).model_class
@@ -271,11 +276,13 @@ class QueryView(JSONView):
             objs = model.objects.filter(pk__in=ids)
           else:
             objs = model.fetch(ids)
-          objs = ModelView.objects_to_dict(objs, 'x' in request.GET)
+          objs = ModelView.objects_to_dict(objs, 'x' in request.GET, follow_fk=follow_fk)
           objects.append(objs)
         else:
           objects.append([])
       results['data'] = objects
+      t1 = datetime.now()
+      print 'DATA IN %s' % (t1-t0,)
 
     # print results
     return self._return(200, results)
