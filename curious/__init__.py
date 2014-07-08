@@ -30,7 +30,11 @@ class ModelManager(object):
     self.url_function = None
 
   def is_rel_allowed(self, f):
-    if _valid_django_rel(getattr(self.model_class, f)) and not f in self.disallowed_relationships:
+    try:
+      rel = getattr(self.model_class, f)
+    except:
+      rel = None
+    if rel and _valid_django_rel(getattr(self.model_class, f)) and not f in self.disallowed_relationships:
       return True
     return f in self.allowed_relationships
 
