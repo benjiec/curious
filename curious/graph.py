@@ -104,14 +104,15 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
         queryset = rel_mgr
       else:
         queryset = QuerySet(field.rel.to)
-      queryset = queryset.filter(**query).only('id')
+      queryset = queryset.filter(**query).only('pk')
 
       table = instances[0]._meta.db_table
+      pk_field = instances[0]._meta.pk.column
       related_table = field.related_field.model._meta.db_table
       if table == related_table:
         # XXX hack: assuming django uses T2 for joining two tables of same name
         table = 'T2'
-      queryset = queryset.extra(select={INPUT_ATTR_PREFIX: '%s.id' % table})
+      queryset = queryset.extra(select={INPUT_ATTR_PREFIX: '%s.%s' % (table, pk_field)})
 
     # reverse FK from instance to related objects with FK to the instance
     elif type(rel_obj_descriptor) == ForeignRelatedObjectsDescriptor:
@@ -124,7 +125,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       rel_mgr.model = rel_model
 
       query = {'%s__in' % rel_field.name: instances}
-      queryset = rel_mgr.get_queryset().filter(**query).only('id')
+      queryset = rel_mgr.get_queryset().filter(**query).only('pk')
       queryset = queryset.extra(select={INPUT_ATTR_PREFIX: '%s' % rel_column})
 
     # M2M from instance to related objects
@@ -134,7 +135,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
 
       mgr = rel_obj_descriptor.__get__(instance)
       query = {'%s__in' % mgr.query_field_name: instances}
-      queryset = super(mgr.__class__, mgr).get_queryset().filter(**query).only('id')
+      queryset = super(mgr.__class__, mgr).get_queryset().filter(**query).only('pk')
 
       fk = mgr.through._meta.get_field(mgr.source_field_name)
       join_table = mgr.through._meta.db_table

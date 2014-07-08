@@ -60,7 +60,7 @@ class Query(object):
     if method is None:
       cls = model_registry.get_manager(model).model_class
       q = cls.objects.all()
-      #XXX q = filter_f(q)
+      q = filter_f(q)
       return q
     else:
       f = model_registry.get_manager(model).getattr(method)
