@@ -51,6 +51,7 @@ class ModelView(JSONView):
     fields = []
     fk = []
     is_model = True
+    add_pk = False
 
     obj = objects[0]
     model_name = model_registry.get_name(obj.__class__)
@@ -64,6 +65,10 @@ class ModelView(JSONView):
         if f.column not in excludes:
           fields.append(f.column)
           fk.append(f.name if type(f) == ForeignKey else None)
+      if 'id' not in fields:
+        fields.append('pk')
+        fk.append(None)
+        add_pk = True
     else:
       is_model = False
       for f in obj.fields():
@@ -101,6 +106,9 @@ class ModelView(JSONView):
       urls.append(obj_url)
       packed.append(values)
 
+    if add_pk is True:
+      assert fields[-1] == 'pk'
+      fields[-1] = 'id'
     return dict(fields=fields, objects=packed, urls=urls)
 
   def get(self, request, model_name):
@@ -135,7 +143,7 @@ class ModelView(JSONView):
         if type(f) == ForeignKey:
           fks.append(f.name)
 
-      q = cls.objects.filter(id__in=data['ids'])
+      q = cls.objects.filter(pk__in=data['ids'])
       if len(fks) > 0:
         q = q.select_related(*fks)
       r = ModelView.objects_to_dict(list(q), 'x' in data)
@@ -155,7 +163,7 @@ class ObjectView(JSONView):
     for f in obj._meta.fields:
       d[f.column] = getattr(obj, f.column)
       if not type(d[f.column]) in (long, int, float, bool, types.NoneType):
-        d[f.column] = unicode(d[f.column]);
+        d[f.column] = unicode(d[f.column])
       if type(f) == ForeignKey:
         v = getattr(obj, f.name)
         if v is not None:
@@ -169,6 +177,12 @@ class ObjectView(JSONView):
             d[f.column]['url'] = model_registry.get_manager(model_name).url_of(v)
           except:
             pass
+    if 'id' not in d:
+      pk = obj.pk
+      if not type(pk) in (long, int, float, bool, types.NoneType):
+        d['id'] = unicode(pk)
+      else:
+        d['id'] = pk
     return d
 
   def get(self, request, model_name, id):

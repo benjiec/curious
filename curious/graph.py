@@ -48,7 +48,7 @@ def mk_filter_function(filters):
             f = Min(_filter['field'])
           q = q.annotate(f)
 
-    return q.only('id')
+    return q.only('pk')
   return apply_filters
 
 
