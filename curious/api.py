@@ -245,11 +245,11 @@ class QueryView(JSONView):
     return dict(last_model=last_model, results=results, computed_on=datetime.now())
 
   @report_time
-  def get(self, request):
-    if 'q' not in request.GET:
+  def _process(self, params):
+    if 'q' not in params:
       return self._error(400, 'Missing query')
 
-    q = request.GET['q']
+    q = params['q']
     print q
 
     try:
@@ -260,11 +260,11 @@ class QueryView(JSONView):
       return self._error(400, str(e))
 
     # check query mode
-    if 'c' in request.GET:
+    if 'c' in params:
       return self._return(200, dict(query=q))
 
     try:
-      results = self.get_query_results(query, 'r' in request.GET)
+      results = self.get_query_results(query, 'r' in params)
     except Exception as e:
       import traceback
       traceback.print_exc()
@@ -277,9 +277,9 @@ class QueryView(JSONView):
 
     # data mode
     objects = []
-    if 'd' in request.GET:
+    if 'd' in params:
       follow_fk = True
-      if 'fk' in request.GET and request.GET['fk'] in ('0','false'):
+      if 'fk' in params and params['fk'] in ('0','false'):
         follow_fk = False
       t0 = datetime.now()
       for result in results['results']:
@@ -290,7 +290,7 @@ class QueryView(JSONView):
             objs = model.objects.filter(pk__in=ids)
           else:
             objs = model.fetch(ids)
-          objs = ModelView.objects_to_dict(objs, 'x' in request.GET, follow_fk=follow_fk)
+          objs = ModelView.objects_to_dict(objs, 'x' in params, follow_fk=follow_fk)
           objects.append(objs)
         else:
           objects.append([])
@@ -300,3 +300,9 @@ class QueryView(JSONView):
 
     # print results
     return self._return(200, results)
+
+  def get(self, request):
+    return self._process(request.GET)
+
+  def post(self, request):
+    return self._process(request.POST)
