@@ -279,7 +279,7 @@ class QueryView(JSONView):
     objects = []
     if 'd' in params:
       follow_fk = True
-      if 'fk' in params and params['fk'] in ('0','false'):
+      if 'fk' in params and params['fk'] in ('0','false',0):
         follow_fk = False
       t0 = datetime.now()
       for result in results['results']:
