@@ -305,4 +305,10 @@ class QueryView(JSONView):
     return self._process(request.GET)
 
   def post(self, request):
-    return self._process(request.POST)
+    if 'q' in request.POST:
+      return self._process(request.POST)
+    try:
+      params = json.loads(request.body)
+      return self._process(params)
+    except:
+      return self._error(400, 'Cannot parse request')

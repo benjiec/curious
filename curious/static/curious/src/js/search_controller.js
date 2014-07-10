@@ -37,8 +37,7 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
     // convert newlines into spaces
     query_string = query_string.replace(/\n/g, " ");
     var url = $scope.__base_url+'/q/';
-    var url = url+'?c=1&q='+encodeURIComponent(query_string);
-    $http.get(url)
+    $http.post(url, {c: 1, q: query_string})
       .success(function(data) { cb(data.result.query, ''); })
       .error(function(data, status, headers, config) {
         var err = '';

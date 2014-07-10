@@ -42,9 +42,9 @@ function QueryController($scope, $http) {
 
   function do_query(query_string, reload, cb) {
     var url = $scope.__base_url+'/q/';
-    var url = url+'?q='+encodeURIComponent(query_string);
-    if (reload) { url = url+'&r=1'; }
-    $http.get(url)
+    var params = {q: query_string};
+    if (reload) { params['r'] = 1; }
+    $http.post(url, params)
       .success(function(data) {
         if (data.result) { cb(data.result, undefined); }
         else { cb(undefined, "Did not receive results from server"); }
