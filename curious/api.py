@@ -296,7 +296,6 @@ class QueryView(JSONView):
           objects.append([])
       results['data'] = objects
       t1 = datetime.now()
-      print 'DATA IN %s' % (t1-t0,)
 
     # print results
     return self._return(200, results)
