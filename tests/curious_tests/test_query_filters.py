@@ -91,7 +91,7 @@ class TestQueryFilters(TestCase):
     qs = 'Blog(%s) Blog.entry_set.count(authors).filter(authors__count=1)' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([], None))
+    self.assertEquals(result, ([([], -1)], None))
 
   def test_explicit_avg_and_filter(self):
     qs = 'Blog(%s) Blog.entry_set.avg(authors__age).filter(authors__age__avg__gt=25)' % self.blogs[0].pk

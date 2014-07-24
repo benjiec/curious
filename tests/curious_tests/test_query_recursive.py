@@ -91,14 +91,14 @@ class TestQueryRecursive(TestCase):
           Entry.responses(headline__icontains="graph")*' % self.blog.pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([], None))
+    self.assertEquals(result, ([([], -1)], None))
 
   def test_recursive_search_with_filter_does_not_contine_from_starting_node_if_it_does_not_pass_filter(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") \
           Entry.responses(headline__icontains="Postgres")*' % self.blog.pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([], None))
+    self.assertEquals(result, ([([], -1)], None))
 
   def test_recursive_traversal(self):
     qs = 'Blog(%s) Blog.entry_set(headline__icontains="MySQL") Entry.responses**' % self.blog.pk

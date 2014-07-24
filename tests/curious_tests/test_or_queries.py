@@ -99,4 +99,8 @@ class TestSubQueries(TestCase):
          'Entry.authors'
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([], None))
+    self.assertEquals(len(result[0]), 3)
+
+    assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
+    self.assertEquals(result[0][1], ([], 0))
+    self.assertEquals(result[0][2], ([], 1))

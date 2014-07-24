@@ -314,8 +314,6 @@ class Query(object):
       obj_src = [(obj, None) for obj in objects]
 
     for step in query:
-      if len(obj_src) == 0:
-        return [], None
 
       if ('join' in step and step['join'] is True) or\
          ('subquery' in step and (step['having'] is None or step['having'] == '?')):
@@ -348,9 +346,6 @@ class Query(object):
         obj_src = Query._rel_step(obj_src, step)
         print 'completed query'
         more_results = True
-
-    if len(obj_src) == 0:
-      return [], None
 
     if more_results:
       res.append((obj_src, last_non_sub_index))

@@ -99,7 +99,19 @@ class TestSubQueries(TestCase):
     qs = 'Blog(%s) -(Blog.entry_set) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
     result = query()
-    self.assertEquals(result, ([], None))
+    self.assertEquals(result, ([([], -1)], None))
+
+  def test_returns_empty_result_for_each_part_of_sub_queries_after_no_match(self):
+    qs = 'Blog(%s) ?(Blog.entry_set(headline__icontains="Noop")) \
+                   Blog.entry_set(headline__icontains="Noop"), Entry.authors' % self.blogs[0].pk
+    query = Query(qs)
+    result = query()
+    self.assertEquals(len(result[0]), 4)
+
+    assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
+    self.assertEquals(result[0][1], ([(None, self.blogs[0].pk)], 0))
+    self.assertEquals(result[0][2], ([], 0))
+    self.assertEquals(result[0][3], ([], 2))
 
   def test_left_join_with_non_null_left_join_results(self):
     qs = 'Blog(%s) ?(Blog.entry_set.filter(headline__icontains="MySQL")) Blog.entry_set' % self.blogs[0].pk
