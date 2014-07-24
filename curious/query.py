@@ -277,7 +277,7 @@ class Query(object):
     for query in or_queries:
       objects = [obj for obj, src in obj_src]
       res, m = Query._query(objects, query)
-      if len(res) > 0:
+      if len(res) > 0 and len(res[0][0]):
         or_results.append((res, m))
 
     models = list(set([r[1] for r in or_results]))
