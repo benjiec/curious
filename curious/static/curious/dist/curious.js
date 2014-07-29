@@ -376,8 +376,8 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
           var obj = entry.ptr;
           if (obj) {
             var v = obj[tbl_attrs[j].name];
-            if (v.display) { v = v.value; }
-            if (v) {
+            if (v.display !== undefined) { v = v.value; }
+            if (v !== undefined && v !== null) {
               v = ''+v;
               // dumb escape logic for csv value - basically gets rid of space and quotes
               v = v.replace("\n", " ");
@@ -386,6 +386,7 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
               v = v.replace("\'", "");
               v = "\""+v+"\"";
             }
+            else { v = ''; }
             row.push(v);
           }
           else {
