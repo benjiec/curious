@@ -9,10 +9,6 @@ from .grammar import QUERY_PEG
 
 
 class Parser(object):
-  """
-  Parses a Wire program into step definitions and connections.
-  """
-
   def __init__(self, code):
     self.object_query = {}
     self.steps = []
@@ -34,67 +30,8 @@ from parsimonious.nodes import NodeVisitor
 
 class ASTBuilder(NodeVisitor):
 
-  def visit_query(self, node, (obj_query, _1, steps, _2)):
-    if type(steps) == list:
-      return [obj_query]+steps[0]
-    return [obj_query]
-
   def visit_object_query(self, node, (model, filters)):
     return dict(model=model, method=None, filters=filters)
-
-  def visit_filter_or_id(self, node, f_or_id):
-    return f_or_id[0]
-
-  def visit_id_arg(self, node, (_1, _2, id, _3, _4)):
-    return [dict(method='filter', kwargs=dict(id=id))]
-
-  def visit_steps(self, node, (step, another_steps)):
-    steps = [step]
-    for s in another_steps:
-      steps.append(s)
-    return steps
-
-  def visit_step(self, node, q):
-    return q[0]
-
-  def visit_another_step(self, node, (_1, step)):
-    return step
-
-  def visit_nj_steps(self, *args):
-    return self.visit_steps(*args)
-
-  def visit_another_nj(self, node, (_1, nj_step)):
-    return nj_step
-
-  def visit_join_query(self, node, (join, _1, nj_query)):
-    if type(join) == list:
-      nj_query['join'] = True
-    return nj_query
-
-  def visit_nj_query(self, node, q):
-    return q[0]
-
-  def visit_or_query(self, node, (_1, nj_steps_1, _2, _s1, _3, _s2, _4, nj_steps_2, _5, more_ors)):
-    r = dict(orquery=[nj_steps_1, nj_steps_2], join=False)
-    if type(more_ors) == list:
-      r['orquery'].extend(more_ors)
-    return r
-
-  def visit_another_or(self, node, (_s1, _1, _s2, _2, nj_steps, _3)):
-    return nj_steps
-
-  def visit_one_query(self, node, (one_rel, recursion)):
-    if type(recursion) == list:
-      one_rel['recursive'] = True
-      if recursion[0] == '$':
-        one_rel['collect'] = 'terminal'
-      elif recursion[0] == '?':
-        one_rel['collect'] = 'search'
-      elif recursion[0] == '*':
-        one_rel['collect'] = 'until'
-      else:
-        one_rel['collect'] = 'all'
-    return one_rel
 
   def visit_one_rel(self, node, (model, _1, method, filters)):
     if type(filters) != list:
@@ -103,12 +40,11 @@ class ASTBuilder(NodeVisitor):
       filters = filters[0]
     return dict(model=model, method=method, filters=filters)
 
-  def visit_sub_query(self, node, (modifier, _1, q, _2)):
-    join = False
-    having = None
-    if type(modifier) == list:
-      having = modifier[0]
-    return dict(subquery=q, having=having, join=join)
+  def visit_filter_or_id(self, node, f_or_id):
+    return f_or_id[0]
+
+  def visit_id_arg(self, node, (_1, _2, id, _3, _4)):
+    return [dict(method='filter', kwargs=dict(id=id))]
 
   def visit_filters(self, node, (f, more_filters)):
     filters = []
@@ -158,7 +94,7 @@ class ASTBuilder(NodeVisitor):
   def visit_another_arg(self, node, (_1, comma, _2, arg)):
     return arg
 
-  def visit_sub_modifier(self, node, _):
+  def visit_lj_modifier(self, node, _):
     return node.text
 
   def visit_identifier(self, node, _):
@@ -211,3 +147,81 @@ class ASTBuilder(NodeVisitor):
 
   def generic_visit(self, node, visited_children):
     return visited_children or node
+
+  # steps
+
+  def visit_steps(self, node, (step, another_steps)):
+    steps = step
+    for s in another_steps:
+      steps.extend(s)
+    return steps
+
+  def visit_step(self, node, q):
+    return q[0]
+
+  def visit_another_step(self, node, (_1, step)):
+    return step
+
+  def visit_mul_rels(self, node, (one_relr, another_relr)):
+    rels = [one_relr]
+    for r in another_relr:
+      rels.append(r)
+    return rels
+
+  def visit_one_relr(self, node, (one_rel, recursion)):
+    if type(recursion) == list:
+      one_rel['recursive'] = True
+      if recursion[0] == '$':
+        one_rel['collect'] = 'terminal'
+      elif recursion[0] == '?':
+        one_rel['collect'] = 'search'
+      elif recursion[0] == '*':
+        one_rel['collect'] = 'until'
+      else:
+        one_rel['collect'] = 'all'
+    return one_rel
+
+  def visit_another_relr(self, node, (_1, relr)):
+    return relr
+
+  def visit_rel_group(self, node, (_1, steps, _2, recursion)):
+    d = dict(group=steps)
+    if type(recursion) == list:
+      d['recursive'] = True
+      if recursion[0] == '$':
+        d['collect'] = 'terminal'
+      elif recursion[0] == '?':
+        d['collect'] = 'search'
+      elif recursion[0] == '*':
+        d['collect'] = 'until'
+      else:
+        d['collect'] = 'all'
+    return [d]
+
+  def visit_or_rels(self, node, (group1, _s1, _or, _s2, group2, more_ors)):
+    r = dict(orquery=[group1, group2])
+    if type(more_ors) == list:
+      r['orquery'].extend(more_ors)
+    return [r]
+
+  def visit_another_or(self, node, (_s1, _or, _s2, group)):
+    return group
+
+  def visit_join_query(self, node, (_s1, _comma, _s2, steps)):
+    join = False
+    if type(_comma) == list:
+      join = True
+    return dict(subquery=steps, join=join)
+
+  def visit_lj_query(self, node, (_s, modifier, _1, steps, _2)):
+    having = modifier
+    return dict(subquery=steps, having=having, join=False)
+
+  def visit_sub_query(self, node, q):
+    return q
+
+  def visit_query(self, node, (obj_query, _1, subq, _2)):
+    r = [obj_query]
+    if type(subq) == list:
+      r += subq
+    return r

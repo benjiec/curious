@@ -1,7 +1,6 @@
 QUERY_PEG = """
 # a query starts with an object query and can have many steps
-
-query        = object_query space* steps? nl?
+query        = object_query space* sub_query* nl?
 
 # object query: differs from a step in that it must have a filter defining some
 # rule to get some objects to seed the query
@@ -9,36 +8,6 @@ query        = object_query space* steps? nl?
 object_query = model filter_or_id
 filter_or_id = id_arg / filters
 id_arg       = "(" space* id space* ")"
-
-# different ways to recursively search
-# *  = searches until looping criteria fails, return all items
-# ** = searches exhaustively, return all items matching criteria
-# $  = returns last nodes passing criteria
-# ?  = searches for and returns first node passing criteria
-
-recursion    = "**" / "*" / "$" / "?"
-
-# steps for query can be a single step, possibly joining with previous step, or
-# a subquery. a single step can be a single relationship, or an OR.
-
-step         = join_query / sub_query
-join         = ","
-join_query   = join? space* nj_query
-nj_query     = one_query / or_query
-
-steps        = step another_step*
-another_step = space* step
-nj_steps     = nj_query another_nj*
-another_nj   = space* nj_query
-
-sub_modifier = "+" / "-" / "?"
-# cannot do joins in sub queries
-sub_query    = sub_modifier? "(" nj_steps ")"
-
-one_query    = one_rel recursion?
-# cannot do joins in or queries
-or_query     = "(" nj_steps ")" space* "|" space* "(" nj_steps ")" another_or*
-another_or   = space* "|" space* "(" nj_steps ")"
 
 # single relationship
 
@@ -59,6 +28,33 @@ bracket_l    = "[" / "("
 bracket_r    = "]" / ")"
 another_val  = space* "," space* value
 value        = string / bool / float / int / null
+
+# different ways to recursively search
+# *  = searches until looping criteria fails, return all items
+# ** = searches exhaustively, return all items matching criteria
+# $  = returns last nodes passing criteria
+# ?  = searches for and returns first node passing criteria
+
+recursion    = "**" / "*" / "$" / "?"
+
+# a step can be a single relation, multiple relations joined together but
+# without a comma. a step can be recursive, and can include another step.
+
+one_relr     = one_rel recursion?
+mul_rels     = one_relr another_relr*
+another_relr = space* one_relr
+rel_group    = "(" steps ")" recursion?
+or_rels      = rel_group space* "|" space* rel_group another_or*
+another_or   = space* "|" space* rel_group
+step         = or_rels / rel_group / mul_rels
+steps        = step another_step*
+another_step = space* step
+
+join_query   = space* ","? space* steps
+lj_modifier  = "+" / "-" / "?"
+lj_query     = space* lj_modifier "(" steps ")"
+
+sub_query    = join_query / lj_query / steps
 
 # misc
 int          = ~"\\-?[0-9]+"
