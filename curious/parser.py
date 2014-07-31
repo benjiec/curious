@@ -11,7 +11,7 @@ from .grammar import QUERY_PEG
 class Parser(object):
   def __init__(self, code):
     self.object_query = {}
-    self.steps = []
+    self.subqueries = []
 
     # parsing:
     grammar = Grammar(QUERY_PEG)
@@ -22,7 +22,7 @@ class Parser(object):
     ast_builder = ASTBuilder()
     query = ast_builder.visit(self.__nodes)
     self.object_query = query[0]
-    self.steps = query[1:]
+    self.subqueries = query[1:]
 
 
 from parsimonious.nodes import NodeVisitor
@@ -218,7 +218,7 @@ class ASTBuilder(NodeVisitor):
     return dict(subquery=steps, having=having, join=False)
 
   def visit_sub_query(self, node, q):
-    return q
+    return q[0]
 
   def visit_query(self, node, (obj_query, _1, subq, _2)):
     r = [obj_query]

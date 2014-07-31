@@ -11,7 +11,7 @@ class Query(object):
     parser = Parser(query)
     self.__query = query
     self.__obj_query = parser.object_query
-    self.__steps = parser.steps
+    self.__subqueries = parser.subqueries
     self.__validate()
 
 
@@ -28,12 +28,14 @@ class Query(object):
     to make sure the model and the relationship exist.
     """
     
-    for rel in query:
-      if 'orquery' in rel:
+    for subquery in query:
+      if 'subquery' in rel:
+        Query._validate(rel['subquery'])
+      elif 'group' in rel:
+        Query._validate(rel['group'])
+      elif 'orquery' in rel:
         for q in rel['orquery']:
           Query._validate(q)
-      elif 'subquery' in rel:
-        Query._validate(rel['subquery'])
       else:
         model = rel['model']
         method = rel['method']
@@ -313,10 +315,10 @@ class Query(object):
     else:
       obj_src = [(obj, None) for obj in objects]
 
-    for step in query:
+    for subquery in query:
 
-      if ('join' in step and step['join'] is True) or\
-         ('subquery' in step and (step['having'] is None or step['having'] == '?')):
+      if ('join' in subquery and subquery['join'] is True) or\
+         ('having' in step and step['having'] == '?'):
         if more_results:
           res.append((obj_src, last_non_sub_index))
           last_non_sub_index = len(res)-1
@@ -372,4 +374,4 @@ class Query(object):
     """
 
     objects = list(self.__get_objects())
-    return Query._query(objects, self.__steps, demux_first=False)
+    return Query._query(objects, self.__subqueries, demux_first=False)
