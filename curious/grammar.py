@@ -1,15 +1,15 @@
 QUERY_PEG = """
-# a query starts with an object query and can have many steps
-query        = object_query space* sub_query* nl?
+# a query starts with an object query followed by joins
+query        = object_query look_ahead* space* chain? join* nl?
 
-# object query: differs from a step in that it must have a filter defining some
-# rule to get some objects to seed the query
+# object query: a model and a filter for retrieving some objects of that model
+# to start the query.
 
 object_query = model filter_or_id
 filter_or_id = id_arg / filters
 id_arg       = "(" space* id space* ")"
 
-# single relationship
+# the basics: single relationship from a model
 
 one_rel      = model "." identifier filters?
 filters      = filter_group? name_filters*
@@ -37,24 +37,28 @@ value        = string / bool / float / int / null
 
 recursion    = "**" / "*" / "$" / "?"
 
-# a step can be a single relation, multiple relations joined together but
-# without a comma. a step can be recursive, and can include another step.
+# a chain is one or more steps. a step is either a relationship or a group of
+# steps, with possibility for recursion or look ahead, or an OR of groups. 
 
-one_relr     = one_rel recursion?
-mul_rels     = one_relr another_relr*
-another_relr = space* one_relr
-rel_group    = "(" steps ")" recursion?
-or_rels      = rel_group space* "|" space* rel_group another_or*
-another_or   = space* "|" space* rel_group
-step         = or_rels / rel_group / mul_rels
-steps        = step another_step*
-another_step = space* step
+chain        = step_rl another_step*
+another_step = space+ step_rl
+step_rl      = step recursion? look_ahead*
+step         = or_step / group / one_rel
+group        = "(" chain ")"
+or_step      = "(" step_rl space* "|" space* step_rl another_or* ")"
+another_or   = space* "|" space* step_rl
 
-join_query   = space* ","? space* steps
-lj_modifier  = "+" / "-" / "?"
-lj_query     = space* lj_modifier "(" steps ")"
+# a look-ahead filter is a +/- followed by a chain in parens
 
-sub_query    = join_query / lj_query / steps
+look_ahead   = space+ la_modifier "(" chain ")"
+la_modifier  = "+" / "-"
+
+# a join is either an inner join or recursive join or a left join
+
+join         = inner_join / recur_join / left_join
+inner_join   = space* "," space* chain
+recur_join   = space* "," space* "(" chain join* ")" recursion?
+left_join    = space* "?" "(" chain ")" recursion?
 
 # misc
 int          = ~"\\-?[0-9]+"

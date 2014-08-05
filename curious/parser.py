@@ -69,9 +69,6 @@ class ASTBuilder(NodeVisitor):
   def visit_filter_group(self, node, (_1, args, _2)):
     return args
 
-  def visit_recursion(self, node, _):
-    return node.text
-
   def visit_model(self, node, v):
     return v[0]
 
@@ -93,9 +90,6 @@ class ASTBuilder(NodeVisitor):
 
   def visit_another_arg(self, node, (_1, comma, _2, arg)):
     return arg
-
-  def visit_lj_modifier(self, node, _):
-    return node.text
 
   def visit_identifier(self, node, _):
     return node.text
@@ -150,42 +144,10 @@ class ASTBuilder(NodeVisitor):
 
   # steps
 
-  def visit_steps(self, node, (step, another_steps)):
-    steps = step
-    for s in another_steps:
-      steps.extend(s)
-    return steps
+  def visit_recursion(self, node, _):
+    return node.text
 
-  def visit_step(self, node, q):
-    return q[0]
-
-  def visit_another_step(self, node, (_1, step)):
-    return step
-
-  def visit_mul_rels(self, node, (one_relr, another_relr)):
-    rels = [one_relr]
-    for r in another_relr:
-      rels.append(r)
-    return rels
-
-  def visit_one_relr(self, node, (one_rel, recursion)):
-    if type(recursion) == list:
-      one_rel['recursive'] = True
-      if recursion[0] == '$':
-        one_rel['collect'] = 'terminal'
-      elif recursion[0] == '?':
-        one_rel['collect'] = 'search'
-      elif recursion[0] == '*':
-        one_rel['collect'] = 'until'
-      else:
-        one_rel['collect'] = 'all'
-    return one_rel
-
-  def visit_another_relr(self, node, (_1, relr)):
-    return relr
-
-  def visit_rel_group(self, node, (_1, steps, _2, recursion)):
-    d = dict(group=steps)
+  def _handle_recursion(self, d, recursion):
     if type(recursion) == list:
       d['recursive'] = True
       if recursion[0] == '$':
@@ -196,32 +158,72 @@ class ASTBuilder(NodeVisitor):
         d['collect'] = 'until'
       else:
         d['collect'] = 'all'
-    return [d]
 
-  def visit_or_rels(self, node, (group1, _s1, _or, _s2, group2, more_ors)):
-    r = dict(orquery=[group1, group2])
-    if type(more_ors) == list:
-      r['orquery'].extend(more_ors)
-    return [r]
+  def visit_la_modifier(self, node, _):
+    return node.text
 
-  def visit_another_or(self, node, (_s1, _or, _s2, group)):
-    return group
+  def visit_chain(self, node, (step, more_steps)):
+    chain = [step]
+    for s in more_steps:
+      chain.append(s)
+    return chain
 
-  def visit_join_query(self, node, (_s1, _comma, _s2, steps)):
-    join = False
-    if type(_comma) == list:
-      join = True
-    return dict(subquery=steps, join=join)
+  def visit_another_step(self, node, (_1, step)):
+    return step
 
-  def visit_lj_query(self, node, (_s, modifier, _1, steps, _2)):
-    having = modifier
-    return dict(subquery=steps, having=having, join=False)
-
-  def visit_sub_query(self, node, q):
+  def visit_step(self, node, q):
     return q[0]
 
-  def visit_query(self, node, (obj_query, _1, subq, _2)):
-    r = [obj_query]
-    if type(subq) == list:
-      r += subq
+  def visit_step_rl(self, node, (step, recursion, la)):
+    d = dict(chain=[step])
+    self._handle_recursion(d, recursion)
+    if type(la) == list:
+      d['look_ahead'] = la
+    return d
+
+  def visit_group(self, node, (_1, chain, _2)):
+    return chain
+
+  def visit_or_step(self, node, (_p1, step1, _s1, _or, _s2, step2, more_steps, _p2)):
+    r = dict(or_chain=[step1, step2])
+    if type(more_steps) == list:
+      r['or_chain'].extend(more_steps)
+    return r
+
+  def visit_another_or(self, node, (_s1, _or, _s2, step)):
+    return step
+
+  def visit_look_ahead(self, node, (_s1, modifier, _1, chain, _2)):
+    having = modifier
+    return dict(chain=chain, having=having, join=False)
+
+  # joins
+
+  def visit_join(self, node, join):
+    return join[0]
+
+  def visit_inner_join(self, node, (_s1, _comma, _s2, chain)):
+    return dict(chain=chain, join=True)
+
+  def visit_recur_join(self, node, (_s1, _comma, _s2, _p1, chain, joins, _p2, recursion)):
+    if type(joins) == list:
+      chain += joins
+    d = dict(chain=chain, join=True)
+    self._handle_recursion(d, recursion)
+    return d
+
+  def visit_left_join(self, node, (_s1, _lj, _p1, chain, _p2, recursion)):
+    d = dict(chain=chain, having='?', join=False)
+    self._handle_recursion(d, recursion)
+    return d
+
+  def visit_query(self, node, (obj_query, la, _1, chain, joins, _2)):
+    d = dict(chain=obj_query)
+    if type(la) == list:
+      d['look_ahead'] = la
+    r = [d]
+    if type(chain) == list:
+      r += chain[0]
+    if type(joins) == list:
+      r += joins
     return r
