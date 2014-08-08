@@ -35,6 +35,12 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
   for (var i=0; i<query_results_raw.length; i++) {
     if (query_results_raw[i].model && query_results_raw[i].objects.length > 0) {
       query_results.push(query_results_raw[i]);
+      // update join index of later columns that joins with this column
+      for (var j=i+1; j<query_results_raw.length; j++) {
+        if (query_results_raw[j].join_index === i) {
+          query_results_raw[j].join_index = query_results.length-1;
+        }
+      }
     }
   }
 
@@ -76,6 +82,7 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
 
     // join rest of the columns
     for (var col=1; col<query_results.length; col++) {
+      console.log(query_results[col]);
       var new_entries = [];
       var column = query_results[col];
       var join_index = column.join_index;
