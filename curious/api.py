@@ -15,6 +15,10 @@ from .utils import report_time
 import time
 
 
+CACHE_VERSION = 5
+CACHE_TIMEOUT = 60*60
+
+
 class JSONView(View):
 
   def _return(self, code, result):
@@ -111,6 +115,35 @@ class ModelView(JSONView):
       fields[-1] = 'id'
     return dict(fields=fields, objects=packed, urls=urls)
 
+  @staticmethod
+  def get_objects_as_json(model_class, ids, ignore_excludes, follow_fk, force):
+    cache_k = 'curious_cache_v%s_object_data_%s/%s_%s_%s' % (
+      CACHE_VERSION, model_class, ids, ignore_excludes, follow_fk
+    )
+    cache_k = hash(cache_k)
+    cache_v = cache.get(cache_k)
+
+    if cache_v is None or force:
+      if hasattr(model_class, '_meta'):
+        fks = []
+        for f in model_class._meta.fields:
+          if type(f) == ForeignKey:
+            fks.append(f.name)
+        q = model_class.objects.filter(pk__in=ids)
+        if len(fks) > 0:
+          q = q.select_related(*fks)
+        r = ModelView.objects_to_dict(list(q), ignore_excludes=ignore_excludes, follow_fk=follow_fk)
+
+      else:
+        objs = model_class.fetch(ids)
+        r = ModelView.objects_to_dict(objs, ignore_excludes=ignore_excludes, follow_fk=follow_fk)
+
+      cache.set(cache_k, json.dumps(r), CACHE_TIMEOUT)
+    else:
+      r = json.loads(cache_v)
+
+    return r
+
   def get(self, request, model_name):
     try:
       cls = model_registry.get_manager(model_name).model_class
@@ -136,22 +169,8 @@ class ModelView(JSONView):
       cls = model_registry.get_manager(model_name).model_class
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
-
-    if hasattr(cls, '_meta'):
-      fks = []
-      for f in cls._meta.fields:
-        if type(f) == ForeignKey:
-          fks.append(f.name)
-
-      q = cls.objects.filter(pk__in=data['ids'])
-      if len(fks) > 0:
-        q = q.select_related(*fks)
-      r = ModelView.objects_to_dict(list(q), 'x' in data)
-
-    else:
-      objs = cls.fetch(data['ids'])
-      r = ModelView.objects_to_dict(objs, 'x' in data)
-
+  
+    r = ModelView.get_objects_as_json(cls, data['ids'], 'x' in data, True, True)
     return self._return(200, r)
 
 
@@ -201,20 +220,22 @@ class QueryView(JSONView):
   # if query takes longer than this number of seconds, cache it
   QUERY_TIME_CACHING_THRESHOLD = 10
 
-  def get_query_results(self, query, force):
-    k = hash('v%d_%s' % (4, query.query_string))
-    v = cache.get(k)
-    if v is None or force:
+  def get_query_results(self, query, force, force_cache):
+    cache_k = 'curious_cache_v%s_query_%s' % (CACHE_VERSION, query.query_string)
+    cache_k = hash(cache_k)
+    cache_v = cache.get(cache_k)
+    if cache_v is None or force:
       t = time.time()
-      v = self.run_query(query)
+      cache_v = self.run_query(query)
       t = time.time()-t
-      if t > QueryView.QUERY_TIME_CACHING_THRESHOLD:
-        cache.set(k, v, None)
+      if t > QueryView.QUERY_TIME_CACHING_THRESHOLD or force_cache:
+        cache.set(cache_k, cache_v, CACHE_TIMEOUT)
       else:
         # remove old cache if there are any
-        cache.set(k, None)
-    return v
+        cache.set(cache_k, None)
+    return cache_v
 
+  @report_time
   def run_query(self, query):
     res, last_model = query()
     results = []
@@ -250,7 +271,16 @@ class QueryView(JSONView):
       return self._error(400, 'Missing query')
 
     q = params['q']
-    print q
+    check_only = 'c' in params
+    load_data = 'd' in params
+    follow_fk = True
+    if 'fk' in params and params['fk'] in ('0','false',0):
+      follow_fk = False
+    ignore_excludes = 'x' in params
+
+    # caching reloaded
+    force = 'r' in params
+    force_cache = 'fc' in params
 
     try:
       query = Query(q)
@@ -260,11 +290,11 @@ class QueryView(JSONView):
       return self._error(400, str(e))
 
     # check query mode
-    if 'c' in params:
+    if check_only:
       return self._return(200, dict(query=q))
 
     try:
-      results = self.get_query_results(query, 'r' in params)
+      results = self.get_query_results(query, force, force_cache)
     except Exception as e:
       import traceback
       traceback.print_exc()
@@ -277,25 +307,16 @@ class QueryView(JSONView):
 
     # data mode
     objects = []
-    if 'd' in params:
-      follow_fk = True
-      if 'fk' in params and params['fk'] in ('0','false',0):
-        follow_fk = False
-      t0 = datetime.now()
+    if load_data:
       for result in results['results']:
         if result['model']:
           model = model_registry.get_manager(result['model']).model_class
           ids = [t[0] for t in result['objects']]
-          if hasattr(model, '_meta'):
-            objs = model.objects.filter(pk__in=ids)
-          else:
-            objs = model.fetch(ids)
-          objs = ModelView.objects_to_dict(objs, 'x' in params, follow_fk=follow_fk)
+          objs = ModelView.get_objects_as_json(model, ids, ignore_excludes, follow_fk, force)
           objects.append(objs)
         else:
           objects.append([])
       results['data'] = objects
-      t1 = datetime.now()
 
     # print results
     return self._return(200, results)
@@ -303,6 +324,7 @@ class QueryView(JSONView):
   def get(self, request):
     return self._process(request.GET)
 
+  @report_time
   def post(self, request):
     if 'q' in request.POST:
       return self._process(request.POST)

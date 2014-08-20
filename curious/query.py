@@ -324,15 +324,15 @@ class Query(object):
           obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
 
       if 'orquery' in step:
-        print 'orquery %s' % step
+        #print 'orquery %s' % step
         obj_src = Query._or(obj_src, step)
-        print 'completed orquery'
+        #print 'completed orquery'
         more_results = True
 
       elif 'subquery' in step:
-        print 'subquery %s' % step
+        #print 'subquery %s' % step
         obj_src, subquery_res = Query._filter_by_subquery(obj_src, step)
-        print 'completed subquery'
+        #print 'completed subquery'
 
         if step['having'] is None or step['having'] == '?': 
           # add subquery result to results, even if there are no results from subquery
@@ -342,9 +342,9 @@ class Query(object):
           more_results = False
 
       else:
-        print 'query: %s' % step
+        #print 'query: %s' % step
         obj_src = Query._rel_step(obj_src, step)
-        print 'completed query'
+        #print 'completed query'
         more_results = True
 
     if more_results:
