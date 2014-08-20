@@ -35,14 +35,14 @@ function QueryController($scope, $http) {
 
   function get_objects(model, ids, cb) {
     var url = $scope.__base_url+'/models/'+model+'/';
-    $http.post(url, {ids: ids}).success(function(data) {
+    $http.post(url, {app: 'curious-ui', r: 1, ids: ids}).success(function(data) {
       if (data.result) { cb(data.result); }
     });
   }
 
   function do_query(query_string, reload, cb) {
     var url = $scope.__base_url+'/q/';
-    var params = {q: query_string};
+    var params = {app: 'curious-ui', q: query_string};
     if (reload) { params['r'] = 1; }
     $http.post(url, params)
       .success(function(data) {

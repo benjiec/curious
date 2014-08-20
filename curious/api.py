@@ -19,6 +19,16 @@ CACHE_VERSION = 5
 CACHE_TIMEOUT = 60*60
 
 
+def get_param_value(params, k, default):
+  true_values = ('1', 'true', 'True', 1)
+  false_values = ('0', 'false', 'False', 0)
+  if k in params and params[k] in false_values:
+    return False
+  if k in params and params[k] in true_values:
+    return True
+  return default
+
+
 class JSONView(View):
 
   def _return(self, code, result):
@@ -116,14 +126,17 @@ class ModelView(JSONView):
     return dict(fields=fields, objects=packed, urls=urls)
 
   @staticmethod
-  def get_objects_as_json(model_class, ids, ignore_excludes, follow_fk, force):
-    cache_k = 'curious_cache_v%s_object_data_%s/%s_%s_%s' % (
-      CACHE_VERSION, model_class, ids, ignore_excludes, follow_fk
+  def get_objects_as_json(model_class, ids, ignore_excludes, follow_fk, force_reload, app):
+    cache_k = 'curious_cache_v%s_app_%s_object_data_%s/%s_%s_%s' % (
+      CACHE_VERSION, app, model_class, ids, ignore_excludes, follow_fk
     )
     cache_k = hash(cache_k)
-    cache_v = cache.get(cache_k)
+    if app is None or force_reload:
+      cache_v = None
+    else:
+      cache_v = cache.get(cache_k)
 
-    if cache_v is None or force:
+    if cache_v is None:
       if hasattr(model_class, '_meta'):
         fks = []
         for f in model_class._meta.fields:
@@ -138,7 +151,9 @@ class ModelView(JSONView):
         objs = model_class.fetch(ids)
         r = ModelView.objects_to_dict(objs, ignore_excludes=ignore_excludes, follow_fk=follow_fk)
 
-      cache.set(cache_k, json.dumps(r), CACHE_TIMEOUT)
+      if app is not None:
+        cache.set(cache_k, json.dumps(r), CACHE_TIMEOUT)
+
     else:
       r = json.loads(cache_v)
 
@@ -165,12 +180,17 @@ class ModelView(JSONView):
     if 'ids' not in data:
       return self._error(400, "Missing ids array")
 
+    app = None
+    if 'app' in data:
+      app = data['app']
+
     try:
       cls = model_registry.get_manager(model_name).model_class
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
-  
-    r = ModelView.get_objects_as_json(cls, data['ids'], 'x' in data, True, True)
+ 
+    ignore_excludes = get_param_value(data, 'x', True)
+    r = ModelView.get_objects_as_json(cls, data['ids'], ignore_excludes, True, True, app)
     return self._return(200, r)
 
 
@@ -220,19 +240,26 @@ class QueryView(JSONView):
   # if query takes longer than this number of seconds, cache it
   QUERY_TIME_CACHING_THRESHOLD = 10
 
-  def get_query_results(self, query, force, force_cache):
+  def get_query_results(self, query, force_reload, force_cache, app):
     cache_k = 'curious_cache_v%s_query_%s' % (CACHE_VERSION, query.query_string)
     cache_k = hash(cache_k)
-    cache_v = cache.get(cache_k)
-    if cache_v is None or force:
+    if app is None or force_reload:
+      cache_v = None
+    else:
+      cache_v = cache.get(cache_k)
+
+    if cache_v is None:
       t = time.time()
       cache_v = self.run_query(query)
       t = time.time()-t
-      if t > QueryView.QUERY_TIME_CACHING_THRESHOLD or force_cache:
-        cache.set(cache_k, cache_v, CACHE_TIMEOUT)
-      else:
-        # remove old cache if there are any
-        cache.set(cache_k, None)
+
+      if app is not None:
+        if t > QueryView.QUERY_TIME_CACHING_THRESHOLD or force_cache:
+          cache.set(cache_k, cache_v, CACHE_TIMEOUT)
+        else:
+          # remove old cache if there are any
+          cache.set(cache_k, None)
+
     return cache_v
 
   @report_time
@@ -267,20 +294,18 @@ class QueryView(JSONView):
 
   @report_time
   def _process(self, params):
+
     if 'q' not in params:
       return self._error(400, 'Missing query')
-
     q = params['q']
-    check_only = 'c' in params
-    load_data = 'd' in params
-    follow_fk = True
-    if 'fk' in params and params['fk'] in ('0','false',0):
-      follow_fk = False
-    ignore_excludes = 'x' in params
 
-    # caching reloaded
-    force = 'r' in params
-    force_cache = 'fc' in params
+    check_only = get_param_value(params, 'c', False)
+    load_data = get_param_value(params, 'd', False)
+    follow_fk = get_param_value(params, 'fk', True)
+    ignore_excludes = get_param_value(params, 'x', False)
+    force = get_param_value(params, 'r', False)
+    force_cache = get_param_value(params, 'fc', False)
+    app = params['app'] if 'app' in params else None
 
     try:
       query = Query(q)
@@ -294,7 +319,7 @@ class QueryView(JSONView):
       return self._return(200, dict(query=q))
 
     try:
-      results = self.get_query_results(query, force, force_cache)
+      results = self.get_query_results(query, force, force_cache, app)
     except Exception as e:
       import traceback
       traceback.print_exc()
@@ -312,7 +337,7 @@ class QueryView(JSONView):
         if result['model']:
           model = model_registry.get_manager(result['model']).model_class
           ids = [t[0] for t in result['objects']]
-          objs = ModelView.get_objects_as_json(model, ids, ignore_excludes, follow_fk, force)
+          objs = ModelView.get_objects_as_json(model, ids, ignore_excludes, follow_fk, force, app)
           objects.append(objs)
         else:
           objects.append([])
