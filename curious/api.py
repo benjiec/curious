@@ -189,7 +189,7 @@ class ModelView(JSONView):
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
  
-    ignore_excludes = get_param_value(data, 'x', True)
+    ignore_excludes = get_param_value(data, 'x', False)
     r = ModelView.get_objects_as_json(cls, data['ids'], ignore_excludes, True, True, app)
     return self._return(200, r)
 
