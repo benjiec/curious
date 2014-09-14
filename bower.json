@@ -6,6 +6,7 @@
     "angular": "1.2.4",
     "angular-route": "1.2.4",
     "angular-sanitize": "1.2.4",
-    "pourover": "*"
+    "pourover": "*",
+    "string": "2.0.1"
   }
 }
