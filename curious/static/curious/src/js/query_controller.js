@@ -74,9 +74,11 @@ function QueryController($scope, $http) {
         if (res.computed_on) { $scope.computed_on = res.computed_on; }
         if (res.computed_since) { $scope.computed_since = res.computed_since; }
         if (res.results.length > 0) {
-          get_model($scope.last_model, function(res, error) {
-            if (res) { if (res.relationships) { $scope.last_model_rels = res.relationships; } }
-          });
+          if ($scope.last_model) {
+            get_model($scope.last_model, function(res, error) {
+              if (res) { if (res.relationships) { $scope.last_model_rels = res.relationships; } }
+            });
+          }
           // create join table
           curiousJoinTable(res.results,
                            function(tbl) { $scope.table = tbl; },
