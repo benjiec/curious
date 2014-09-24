@@ -265,15 +265,7 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
             var v = obj[tbl_attrs[j].name];
             if (v && v.display !== undefined) { v = v.value; }
             if (v && v.__str__ !== undefined) { v = v.__str__; }
-            if (v !== undefined && v !== null) {
-              v = ''+v;
-              // dumb escape logic for csv value - basically gets rid of space and quotes
-              v = v.replace("\n", " ");
-              v = v.replace("\t", " ");
-              v = v.replace("\"", "");
-              v = v.replace("\'", "");
-              v = "\""+v+"\"";
-            }
+            if (v !== undefined && v !== null) { v = ''+v; }
             else { v = ''; }
             row.push(v);
           }
@@ -286,7 +278,7 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
           row.push('');
         }
       }
-      csv_rows.push(row.join(','));
+      csv_rows.push(S(row).toCSV().s);
     }
 
     return csv_rows.join('\n');

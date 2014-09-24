@@ -124,7 +124,7 @@
           </span>
           <ul class="dropdown-menu" role="menu">
             <li><a href="javascript:void(0);" ng-click="table.filter(columnIndex)"
-                 ><em>All</em></a></li>
+                 ><em>All {{ table.controls.filters[$index].length }}</em></a></li>
             <li ng-repeat="value in table.controls.filters[$index]">
               <a href="javascript:void(0);" ng-click="table.filter(columnIndex, value)"
                ><span ng-if="value === ''"
