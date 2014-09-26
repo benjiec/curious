@@ -20,10 +20,10 @@ class ModelManager(object):
       return '%s__%s' % (model_class._meta.app_label, model_class.__name__)
     return model_class.__name__
 
-  def __init__(self, model_class):
+  def __init__(self, model_class, short_name=None):
     self.model_class = model_class
     self.model_name = ModelManager.model_name(model_class)
-    self.short_name = model_class.__name__
+    self.short_name = model_class.__name__ if short_name is None else short_name
     self.allowed_relationships = []
     self.disallowed_relationships = []
     self.field_excludes = []
@@ -59,15 +59,15 @@ class ModelRegistry(object):
     self.__managers = {}
     self.__short_names = {}
 
-  def __add_model_by_class(self, cls):
-    manager = ModelManager(cls)
+  def __add_model_by_class(self, cls, short_name=None):
+    manager = ModelManager(cls, short_name)
     if manager.model_name not in self.__managers:
       self.__managers[manager.model_name] = manager
       if manager.short_name not in self.__short_names:
         self.__short_names[manager.short_name] = []
       self.__short_names[manager.short_name].append(manager)
 
-  def register(self, model):
+  def register(self, model, short_name=None):
     if type(model) == types.ModuleType:
       for name in dir(model):
         cls = getattr(model, name)
@@ -75,7 +75,7 @@ class ModelRegistry(object):
           self.__add_model_by_class(cls)
     else:
       if not hasattr(model, '_meta') or model._meta.abstract is False:
-        self.__add_model_by_class(model)
+        self.__add_model_by_class(model, short_name)
 
   def __translate_name(self, name):
     if name in self.__managers:
