@@ -8,9 +8,11 @@ def remote_fk(from_model_fk_field, to_model, to_model_field=None):
     instances = deferred_to_real(instances)
     c = {}
     c['%s__in' % to_model_field] = [getattr(instance, from_model_fk_field) for instance in instances]
-    f = {}
-    f[to_model_field] = to_model_field
-    q = to_model.objects.filter(**c).extra(select=f)
+    q = to_model.objects.filter(**c)
+    if to_model_field not in ['pk', 'id']:
+      f = {}
+      f[to_model_field] = to_model_field
+      q = q.extra(select=f)
     q = filter_f(q)
 
     to_from = {}
@@ -37,9 +39,11 @@ def remote_reverse_fk(to_model_fk_field, to_model, from_model_field=None):
   def rel_f(instances, filter_f):
     arg = {}
     arg['%s__in' % to_model_fk_field] = [getattr(instance, from_model_field) for instance in instances]
-    f = {}
-    f[to_model_fk_field] = to_model_fk_field
-    q = to_model.objects.filter(**arg).extra(select=f)
+    q = to_model.objects.filter(**arg)
+    if to_model_fk_field not in ['pk', 'id']:
+      f = {}
+      f[to_model_fk_field] = to_model_fk_field
+      q = q.extra(select=f)
     q = filter_f(q)
 
     to_from = {}
