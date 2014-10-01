@@ -8,7 +8,9 @@ def remote_fk(from_model_fk_field, to_model, to_model_field=None):
     instances = deferred_to_real(instances)
     c = {}
     c['%s__in' % to_model_field] = [getattr(instance, from_model_fk_field) for instance in instances]
-    q = to_model.objects.filter(**c)
+    f = {}
+    f[to_model_field] = to_model_field
+    q = to_model.objects.filter(**c).extra(select=f)
     q = filter_f(q)
 
     to_from = {}
@@ -35,7 +37,9 @@ def remote_reverse_fk(to_model_fk_field, to_model, from_model_field=None):
   def rel_f(instances, filter_f):
     arg = {}
     arg['%s__in' % to_model_fk_field] = [getattr(instance, from_model_field) for instance in instances]
-    q = to_model.objects.filter(**arg)
+    f = {}
+    f[to_model_fk_field] = to_model_fk_field
+    q = to_model.objects.filter(**arg).extra(select=f)
     q = filter_f(q)
 
     to_from = {}
@@ -47,10 +51,10 @@ def remote_reverse_fk(to_model_fk_field, to_model, from_model_field=None):
       to_from[k].append(instance)
 
     r = []
+    q = list(q)
     for obj in q:
       for src in to_from[getattr(obj, to_model_fk_field)]:
         r.append((obj, src.pk))
     return r
-
 
   return rel_f
