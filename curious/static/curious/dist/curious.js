@@ -1,3 +1,85 @@
+'use strict';
+
+function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
+  $scope.__base_url = '/curious';
+
+  // SearchController object cache 
+  $scope._object_cache = {};
+
+  $scope.query = '';
+  $scope.query_error = '';
+  $scope.query_accepted = '';
+
+  $scope.delayPromise = undefined;
+  $scope.recent_queries = RecentQueries;
+
+  $scope.query_submitted = [];
+
+  if ($routeParams && $routeParams.query) {
+    $scope.query = $routeParams.query;
+    $scope.query_submitted = [{query: $scope.query, reload: false}];
+    var i = $scope.recent_queries.indexOf($routeParams.query);
+    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
+  }
+
+  $scope.delayCheckQuery = function() {
+    if ($scope.delayPromise !== undefined) {
+      $timeout.cancel($scope.delayPromise);
+      $scope.delayPromise = undefined;
+    }
+    $scope.delayPromise = $timeout(function() {
+      $scope.checkQuery();
+      $scope.delayPromise = undefined;
+    }, 1000);
+  };
+
+  $scope._check_query = function(query_string, cb) {
+    // convert newlines into spaces
+    query_string = query_string.replace(/\n/g, " ");
+    var url = $scope.__base_url+'/q/';
+    $http.post(url, {c: 1, app: 'curious-ui', q: query_string})
+      .success(function(data) { cb(data.result.query, ''); })
+      .error(function(data, status, headers, config) {
+        var err = '';
+        if (data.error) { err = data.error.message; }
+        else { err = 'Unspecified error'; }
+        cb('', err);
+      });
+  };
+
+  $scope._new_query = function(query, reload) {
+    var url = '/q/'+encodeURI(query);
+    $location.path(url);
+    $scope.query_submitted = [{query: $scope.query, reload: reload}];
+  }
+
+  $scope.checkQuery = function(cb) {
+    if ($scope.query != '') {
+      $scope._check_query($scope.query, function(query_string, err) {
+        $scope.query_error = err;
+        $scope.query_accepted = query_string;
+        if (cb !== undefined) { cb(query_string, err); }
+      });
+    }
+  };
+
+  $scope.submitQuery = function(reload) {
+    if (reload === undefined) { reload = false; }
+    $scope.checkQuery(function(query_string, err) {
+      if (query_string !== '') { $scope._new_query(query_string, reload); }
+    });
+  };
+
+  $scope.refreshQuery = function () {
+    $scope.reload = true;
+  };
+
+  $scope.extendQuery = function(model, rel) {
+    $scope.query = $scope.query+' '+model+'.'+rel;
+    $scope.submitQuery();
+  };
+}
+
 var app = angular.module('curious', ['ngRoute', 'ngSanitize'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider
@@ -120,7 +202,7 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
 
     // join rest of the columns
     for (var col=1; col<query_results.length; col++) {
-      console.log(query_results[col]);
+      // console.log(query_results[col]);
       var new_entries = [];
       var column = query_results[col];
       var join_index = column.join_index;
@@ -202,28 +284,31 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
     var id = obj_data.id;
     var obj_id = model+'.'+id;
     var ptr = object_cache[obj_id];
-    ptr['__fetched__'] = obj_data;
-    for (var a in obj_data) {
-      // already has id field with link, don't overwrite that
-      if (a === 'id') {
-        var v = obj_data[a];
-        var s = ''+v;
-        if (obj_data['__url__']) { s = '<a href="'+obj_data['__url__']+'">'+v+'</a>'; }
-        ptr[a] = {value: v, display: s};
-      }
-      else if (a !== '__url__') {
-        // for each field, we have a value, and a display value that is shown
-        // to the user.
-        var v = obj_data[a];
-        var s = v;
-        if (v && v.model) {
-          if ('__str__' in v) {
-            s = v['__str__'];
-            if (v.id) { s += ' ('+v.id+')'; }
-          }
-          if ('url' in v && v.url) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+    if (ptr) {
+      // it is possible we got data we didn't ask for, then ptr would be undefined
+      ptr['__fetched__'] = obj_data;
+      for (var a in obj_data) {
+        // already has id field with link, don't overwrite that
+        if (a === 'id') {
+          var v = obj_data[a];
+          var s = ''+v;
+          if (obj_data['__url__']) { s = '<a href="'+obj_data['__url__']+'">'+v+'</a>'; }
+          ptr[a] = {value: v, display: s};
         }
-        ptr[a] = {value: v, display: s};
+        else if (a !== '__url__') {
+          // for each field, we have a value, and a display value that is shown
+          // to the user.
+          var v = obj_data[a];
+          var s = v;
+          if (v && v.model) {
+            if ('__str__' in v) {
+              s = v['__str__'];
+              if (v.id) { s += ' ('+v.id+')'; }
+            }
+            if ('url' in v && v.url) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+          }
+          ptr[a] = {value: v, display: s};
+        }
       }
     }
   }
@@ -760,85 +845,3 @@ function QueryController($scope, $http) {
   $scope.query = $scope.query_info.query;
   execute();
 };
-
-'use strict';
-
-function SearchController($scope, $routeParams, $http, $timeout, $location, RecentQueries) {
-  $scope.__base_url = '/curious';
-
-  // SearchController object cache 
-  $scope._object_cache = {};
-
-  $scope.query = '';
-  $scope.query_error = '';
-  $scope.query_accepted = '';
-
-  $scope.delayPromise = undefined;
-  $scope.recent_queries = RecentQueries;
-
-  $scope.query_submitted = [];
-
-  if ($routeParams && $routeParams.query) {
-    $scope.query = $routeParams.query;
-    $scope.query_submitted = [{query: $scope.query, reload: false}];
-    var i = $scope.recent_queries.indexOf($routeParams.query);
-    if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
-  }
-
-  $scope.delayCheckQuery = function() {
-    if ($scope.delayPromise !== undefined) {
-      $timeout.cancel($scope.delayPromise);
-      $scope.delayPromise = undefined;
-    }
-    $scope.delayPromise = $timeout(function() {
-      $scope.checkQuery();
-      $scope.delayPromise = undefined;
-    }, 1000);
-  };
-
-  $scope._check_query = function(query_string, cb) {
-    // convert newlines into spaces
-    query_string = query_string.replace(/\n/g, " ");
-    var url = $scope.__base_url+'/q/';
-    $http.post(url, {c: 1, app: 'curious-ui', q: query_string})
-      .success(function(data) { cb(data.result.query, ''); })
-      .error(function(data, status, headers, config) {
-        var err = '';
-        if (data.error) { err = data.error.message; }
-        else { err = 'Unspecified error'; }
-        cb('', err);
-      });
-  };
-
-  $scope._new_query = function(query, reload) {
-    var url = '/q/'+encodeURI(query);
-    $location.path(url);
-    $scope.query_submitted = [{query: $scope.query, reload: reload}];
-  }
-
-  $scope.checkQuery = function(cb) {
-    if ($scope.query != '') {
-      $scope._check_query($scope.query, function(query_string, err) {
-        $scope.query_error = err;
-        $scope.query_accepted = query_string;
-        if (cb !== undefined) { cb(query_string, err); }
-      });
-    }
-  };
-
-  $scope.submitQuery = function(reload) {
-    if (reload === undefined) { reload = false; }
-    $scope.checkQuery(function(query_string, err) {
-      if (query_string !== '') { $scope._new_query(query_string, reload); }
-    });
-  };
-
-  $scope.refreshQuery = function () {
-    $scope.reload = true;
-  };
-
-  $scope.extendQuery = function(model, rel) {
-    $scope.query = $scope.query+' '+model+'.'+rel;
-    $scope.submitQuery();
-  };
-}

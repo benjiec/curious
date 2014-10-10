@@ -82,7 +82,7 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
 
     // join rest of the columns
     for (var col=1; col<query_results.length; col++) {
-      console.log(query_results[col]);
+      // console.log(query_results[col]);
       var new_entries = [];
       var column = query_results[col];
       var join_index = column.join_index;
@@ -164,28 +164,31 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
     var id = obj_data.id;
     var obj_id = model+'.'+id;
     var ptr = object_cache[obj_id];
-    ptr['__fetched__'] = obj_data;
-    for (var a in obj_data) {
-      // already has id field with link, don't overwrite that
-      if (a === 'id') {
-        var v = obj_data[a];
-        var s = ''+v;
-        if (obj_data['__url__']) { s = '<a href="'+obj_data['__url__']+'">'+v+'</a>'; }
-        ptr[a] = {value: v, display: s};
-      }
-      else if (a !== '__url__') {
-        // for each field, we have a value, and a display value that is shown
-        // to the user.
-        var v = obj_data[a];
-        var s = v;
-        if (v && v.model) {
-          if ('__str__' in v) {
-            s = v['__str__'];
-            if (v.id) { s += ' ('+v.id+')'; }
-          }
-          if ('url' in v && v.url) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+    if (ptr) {
+      // it is possible we got data we didn't ask for, then ptr would be undefined
+      ptr['__fetched__'] = obj_data;
+      for (var a in obj_data) {
+        // already has id field with link, don't overwrite that
+        if (a === 'id') {
+          var v = obj_data[a];
+          var s = ''+v;
+          if (obj_data['__url__']) { s = '<a href="'+obj_data['__url__']+'">'+v+'</a>'; }
+          ptr[a] = {value: v, display: s};
         }
-        ptr[a] = {value: v, display: s};
+        else if (a !== '__url__') {
+          // for each field, we have a value, and a display value that is shown
+          // to the user.
+          var v = obj_data[a];
+          var s = v;
+          if (v && v.model) {
+            if ('__str__' in v) {
+              s = v['__str__'];
+              if (v.id) { s += ' ('+v.id+')'; }
+            }
+            if ('url' in v && v.url) { s = '<a href="'+v.url+'">'+s+'</a>'; }
+          }
+          ptr[a] = {value: v, display: s};
+        }
       }
     }
   }
