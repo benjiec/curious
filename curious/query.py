@@ -87,7 +87,7 @@ class Query(object):
 
   @staticmethod
   @report_time
-  def _graph_step(obj_src, model, step_f, filters):
+  def _graph_step(obj_src, model, step_f, filters, tree=None):
     """
     Traverse one step on the graph. Takes in and returns arrays of output,
     input object tuples. The input objects in the tuples are from start of the
@@ -104,6 +104,8 @@ class Query(object):
                         (model, type(obj_src[0][0])))
 
     next_obj_src = traverse([obj for obj, src in obj_src], step_f, filters)
+    if tree is not None:
+      tree.extend((t[0].id, t[1]) for t in next_obj_src)
 
     return Query._extend_result(obj_src, next_obj_src)
 
@@ -124,6 +126,7 @@ class Query(object):
     step_f = model_registry.get_manager(model).getattr(method)
 
     collected = {}
+    tree = []
     starting = True
 
     if collect == 'search' and filters is None:
@@ -160,7 +163,7 @@ class Query(object):
       for obj, src in obj_src:
         visited[obj.pk] = 1
 
-      next_obj_src = Query._graph_step(new_src, model, step_f, filters)
+      next_obj_src = Query._graph_step(new_src, model, step_f, filters, tree)
 
       if collect == 'terminal':
         next_demux = Query._graph_step([(obj, obj.pk) for obj, src in obj_src], model, step_f, filters)
@@ -180,8 +183,6 @@ class Query(object):
         obj_src = list(set(reachable)-set(next_obj_src))
 
       elif collect == 'until':
-        reachable = Query._graph_step(obj_src, model, step_f, None)
-        t = time.time()
         for tup in next_obj_src:
           if tup not in collected:
             collected[tup] = 1
@@ -194,7 +195,7 @@ class Query(object):
             collected[tup] = 1
         obj_src = reachable
 
-    return collected.keys()
+    return collected.keys(), tree
 
 
   @staticmethod
@@ -205,6 +206,8 @@ class Query(object):
     start of the query, not start of this step.
     """
 
+    tree = None
+
     if 'recursive' not in step or step['recursive'] is False:
       model = step['model']
       method = step['method']
@@ -213,10 +216,10 @@ class Query(object):
       obj_src = Query._graph_step(obj_src, model, step_f, filters)
 
     else:
-      obj_src = Query._recursive_rel(obj_src, step)
+      obj_src, tree = Query._recursive_rel(obj_src, step)
 
     # print '%s: %d' % (step, len(obj_src))
-    return obj_src
+    return obj_src, tree
 
 
   @staticmethod
@@ -307,6 +310,7 @@ class Query(object):
     res = []
     more_results = True
     last_non_sub_index = -1
+    last_tree = None
 
     if demux_first is True:
       obj_src = [(obj, obj.pk) for obj in objects]
@@ -318,7 +322,7 @@ class Query(object):
       if ('join' in step and step['join'] is True) or\
          ('subquery' in step and (step['having'] is None or step['having'] == '?')):
         if more_results:
-          res.append((obj_src, last_non_sub_index))
+          res.append((obj_src, last_non_sub_index, last_tree))
           last_non_sub_index = len(res)-1
           more_results = False
           obj_src = list(set([(obj, obj.pk) for obj, src in obj_src]))
@@ -336,19 +340,19 @@ class Query(object):
 
         if step['having'] is None or step['having'] == '?': 
           # add subquery result to results, even if there are no results from subquery
-          res.append((subquery_res, last_non_sub_index))
+          res.append((subquery_res, last_non_sub_index, last_tree))
           # don't increase last_non_sub_index, so caller knows next query
           # should still join with the last non sub query results.
           more_results = False
 
       else:
         #print 'query: %s' % step
-        obj_src = Query._rel_step(obj_src, step)
+        obj_src, last_tree = Query._rel_step(obj_src, step)
         #print 'completed query'
         more_results = True
 
     if more_results:
-      res.append((obj_src, last_non_sub_index))
+      res.append((obj_src, last_non_sub_index, last_tree))
 
     # last model, can be None if left join and got no data
     t = None

@@ -102,5 +102,5 @@ class TestSubQueries(TestCase):
     self.assertEquals(len(result[0]), 3)
 
     assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
-    self.assertEquals(result[0][1], ([], 0))
-    self.assertEquals(result[0][2], ([], 1))
+    self.assertEquals(result[0][1], ([], 0, None))
+    self.assertEquals(result[0][2], ([], 1, None))

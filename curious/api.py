@@ -271,7 +271,7 @@ class QueryView(JSONView):
     res, last_model = query()
     results = []
 
-    for obj_src, join_index in res:
+    for obj_src, join_index, tree in res:
       model = None
       for obj, src in obj_src:
         if obj is not None:
@@ -287,7 +287,8 @@ class QueryView(JSONView):
 
       d = {'model': model_name,
            'join_index': join_index,
-           'objects': [(obj.pk, src) if obj is not None else (None, src) for obj, src in obj_src]
+           'objects': [(obj.pk, src) if obj is not None else (None, src) for obj, src in obj_src],
+           'tree': tree
           }
       results.append(d)
 

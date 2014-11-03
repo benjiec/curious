@@ -32,7 +32,7 @@ class TestQueryAPI(TestCase):
     self.assertEquals(j.keys(), ['result'])
     self.assertEquals(j['result']['last_model'], 'Entry')
     self.assertEquals(len(j['result']['results']), 1)
-    self.assertItemsEqual(j['result']['results'][0].keys(), ['model', 'join_index', 'objects'])
+    self.assertItemsEqual(j['result']['results'][0].keys(), ['model', 'join_index', 'objects', 'tree'])
     self.assertEquals(j['result']['results'][0]['model'], 'Entry')
     self.assertEquals(j['result']['results'][0]['join_index'], -1)
     objects = [[obj.id, None] for obj in self.entries]
@@ -46,12 +46,12 @@ class TestQueryAPI(TestCase):
     self.assertEquals(j['result']['last_model'], 'Entry')
     self.assertEquals(len(j['result']['results']), 2)
 
-    self.assertItemsEqual(j['result']['results'][0].keys(), ['model', 'join_index', 'objects'])
+    self.assertItemsEqual(j['result']['results'][0].keys(), ['model', 'join_index', 'objects', 'tree'])
     self.assertEquals(j['result']['results'][0]['model'], 'Blog')
     self.assertEquals(j['result']['results'][0]['join_index'], -1)
     self.assertItemsEqual(j['result']['results'][0]['objects'], [[self.blog.pk, None]])
 
-    self.assertItemsEqual(j['result']['results'][1].keys(), ['model', 'join_index', 'objects'])
+    self.assertItemsEqual(j['result']['results'][1].keys(), ['model', 'join_index', 'objects', 'tree'])
     self.assertEquals(j['result']['results'][1]['model'], 'Entry')
     self.assertEquals(j['result']['results'][1]['join_index'], 0)
     objects = [[obj.id, self.blog.pk] for obj in self.entries]
@@ -66,12 +66,12 @@ class TestQueryAPI(TestCase):
     self.assertEquals(j['result']['last_model'], 'Entry')
     self.assertEquals(len(j['result']['results']), 2)
 
-    self.assertItemsEqual(j['result']['results'][0].keys(), ['model', 'join_index', 'objects'])
+    self.assertItemsEqual(j['result']['results'][0].keys(), ['model', 'join_index', 'objects', 'tree'])
     self.assertEquals(j['result']['results'][0]['model'], 'Blog')
     self.assertEquals(j['result']['results'][0]['join_index'], -1)
     self.assertItemsEqual(j['result']['results'][0]['objects'], [[self.blog.pk, None]])
 
-    self.assertItemsEqual(j['result']['results'][1].keys(), ['model', 'join_index', 'objects'])
+    self.assertItemsEqual(j['result']['results'][1].keys(), ['model', 'join_index', 'objects', 'tree'])
     self.assertEquals(j['result']['results'][1]['model'], 'Entry')
     self.assertEquals(j['result']['results'][1]['join_index'], 0)
     objects = [[obj.id, self.blog.pk] for obj in self.entries]
