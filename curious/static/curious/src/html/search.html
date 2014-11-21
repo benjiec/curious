@@ -36,7 +36,7 @@
 <div id="queries">
   <p><h4>Recent Queries</h4></p>
   <div ng-repeat="query in recent_queries">
-    <a href="#/q/{{ query|encodeURI }}">{{ query }}</a>
+    <a href="#/q/{{ query|encodeURIComponent }}">{{ query }}</a>
   </div>
 </div>
 

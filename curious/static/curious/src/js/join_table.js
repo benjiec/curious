@@ -250,11 +250,19 @@ function curiousJoinTable(query_results_raw, set_table_cb, object_cache_f, get_o
     if (tbl_rows.length == 0) { return ""; }
     var csv_rows = []
 
-    var row0 = tbl_rows[0];
     var header = [];
     for (var i=0; i<tbl_attrs.length; i++) {
-      var model = row0[i].model;
-      header.push(model+'.'+tbl_attrs[i].name);
+      var model;
+      for (var j=0; j<tbl_rows.length; j++) {
+        if (tbl_rows[j][i]) {
+          model = tbl_rows[j][i].model;
+          break;
+        }
+      }
+      if (model !== undefined)
+        header.push(model+'.'+tbl_attrs[i].name);
+      else
+        header.push(tbl_attrs[i].name);
     }
     csv_rows.push(header.join(','));
 
