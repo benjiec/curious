@@ -158,11 +158,13 @@ class Query(object):
     visited = {}
 
     while len(obj_src) > 0:
-      # prevent loops by removing previously objects
+      # prevent loops by removing previously visited objects
       new_src = [tup for tup in obj_src if tup[0].pk not in visited]
       for obj, src in obj_src:
         visited[obj.pk] = 1
 
+      if len(new_src) == 0:
+        break
       next_obj_src = Query._graph_step(new_src, model, step_f, filters, tree)
 
       if collect == 'terminal':
