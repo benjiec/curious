@@ -17,6 +17,8 @@ from django.db.models.fields.related import ManyRelatedObjectsDescriptor
 
 def mk_filter_function(filters):
   def apply_filters(q):
+    order_by = 'id'  # default ordering, if asked with first or last
+
     if filters is not None:
       if type(q) != QuerySet:
         raise Exception('Can only apply filters to queryset objects')
@@ -24,7 +26,8 @@ def mk_filter_function(filters):
       for _filter in filters:
         if 'method' not in _filter or\
            _filter['method'] not in ['exclude', 'filter',
-                                     'count', 'max', 'min', 'sum', 'avg']:
+                                     'count', 'max', 'min', 'sum', 'avg',
+                                     'order', 'start', 'limit', 'first', 'last']:
           raise Exception('Missing or unknown method in filter')
 
         if _filter['method'] in ['exclude', 'filter']:
@@ -33,20 +36,40 @@ def mk_filter_function(filters):
           kwargs = _filter['kwargs']
           q = getattr(q, _filter['method'])(**kwargs)
 
-        else:
+        elif _filter['method'] in ['count', 'max', 'min', 'sum', 'avg']:
           if 'field' not in _filter:
             raise Exception('Missing field for aggregation function')
+          field = _filter['field']
           if _filter['method'] == 'count':
-            f = Count(_filter['field'])
+            f = Count(field)
           elif _filter['method'] == 'avg':
-            f = Avg(_filter['field'])
+            f = Avg(field)
           elif _filter['method'] == 'sum':
-            f = Sum(_filter['field'])
+            f = Sum(field)
           elif _filter['method'] == 'max':
-            f = Max(_filter['field'])
+            f = Max(field)
           elif _filter['method'] == 'min':
-            f = Min(_filter['field'])
+            f = Min(field)
           q = q.annotate(f)
+
+        elif _filter['method'] in ['order', 'start', 'limit', 'first', 'last']:
+          if 'field' not in _filter:
+            raise Exception('Missing field or range for paging')
+          f = _filter['field']
+          if _filter['method'] == 'order':
+            q = q.order_by(f)
+            order_by = f
+          elif _filter['method'] == 'start':
+            q = q[int(f):]
+          elif _filter['method'] == 'limit':
+            q = q[:int(f)]
+          elif _filter['method'] == 'first':
+            q = q.order_by(order_by)[0:int(f)]
+          elif _filter['method'] == 'last':
+            q = q.order_by('-%s' % order_by)[0:int(f)]
+
+        else:
+          raise Exception('Unknown method')
 
     return q.only('pk')
   return apply_filters
