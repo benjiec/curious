@@ -195,9 +195,12 @@ class ASTBuilder(NodeVisitor):
 
   def visit_string(self, node, (t, s)):
     if type(t) == list:
-      c = parsedatetime.Calendar()
-      t = c.parse(s)
-      return datetime.fromtimestamp(mktime(t[0]))
+      if t[0].text == 't':
+        c = parsedatetime.Calendar()
+        t = c.parse(s)
+        return datetime.fromtimestamp(mktime(t[0]))
+      elif t[0].text == 'r':
+        return r'%s' % s
     return s
 
   def visit_q_string(self, node, s):
