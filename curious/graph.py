@@ -20,8 +20,8 @@ def mk_filter_function(filters):
     order_by = 'id'  # default ordering, if asked with first or last
 
     if filters is not None:
-      if type(q) != QuerySet:
-        raise Exception('Can only apply filters to queryset objects')
+      #if type(q) != QuerySet:
+        #raise Exception('Can only apply filters to queryset objects')
 
       for _filter in filters:
         if 'method' not in _filter or\
