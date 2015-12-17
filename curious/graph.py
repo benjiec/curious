@@ -57,21 +57,22 @@ def mk_filter_function(filters):
             raise Exception('Missing field or range for paging')
           f = _filter['field']
           if _filter['method'] == 'order':
-            q = q.order_by(f)
+            q = q.distinct().order_by(f)
             order_by = f
           elif _filter['method'] == 'start':
             q = q[int(f):]
           elif _filter['method'] == 'limit':
             q = q[:int(f)]
           elif _filter['method'] == 'first':
-            q = q.order_by(order_by)[0:int(f)]
+            q = q.distinct().order_by(order_by)[0:int(f)]
           elif _filter['method'] == 'last':
-            q = q.order_by('-%s' % order_by)[0:int(f)]
+            q = q.distinct().order_by('-%s' % order_by)[0:int(f)]
 
         else:
           raise Exception('Unknown method')
 
-    return q.only('pk')
+    q = q.only('pk')
+    return q
   return apply_filters
 
 
