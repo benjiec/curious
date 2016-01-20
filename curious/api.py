@@ -147,7 +147,7 @@ class ModelView(JSONView):
           if type(f) == ForeignKey:
             fks.append(f.name)
         q = model_class.objects.filter(pk__in=ids)
-        if len(fks) > 0:
+        if len(fks) > 0 and follow_fk is True:
           q = q.select_related(*fks)
         r = ModelView.objects_to_dict(list(q), ignore_excludes=ignore_excludes, follow_fk=follow_fk)
 
