@@ -1,6 +1,9 @@
 #results { margin-top: 20px; }
 #queries { margin-top: 40px; }
+#modules { margin-top: 40px; }
 #results-header { margin: 5px 0px; }
+
+#modules table td span { padding-right: 10px; }
 
 /* in case there are long words, like sequences */
 th { white-space: nowrap; }

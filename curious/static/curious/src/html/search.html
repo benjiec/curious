@@ -40,4 +40,19 @@
   </div>
 </div>
 
+<div id="modules">
+  <p><h4>Models</h4></p>
+  <table class="table table-bordered table-condensed">
+    <tr><td>Module</td><td>Models</td></tr>
+    <tr ng-repeat="module in modules">
+      <td>{{ module.module }}</td>
+      <td>
+        <span ng-repeat="model in module.models">
+          <a href="#/q/{{ model }}.last(1)">{{ model }}</a>
+        </span>
+      </td>
+    </tr>
+  </table>
+</div>
+
 </div> <!-- container-fluid -->

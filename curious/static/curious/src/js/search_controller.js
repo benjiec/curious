@@ -22,6 +22,34 @@ function SearchController($scope, $routeParams, $http, $timeout, $location, Rece
     if (i < 0) { $scope.recent_queries.unshift($routeParams.query); }
   }
 
+  var url = $scope.__base_url+'/models/';
+  $http.get(url).success(function(data) {
+    if (data.result) {
+      var models = data.result;
+      var by_module = {};
+      for (var i=0; i<models.length; i++) {
+        var model = models[i];
+        if (model.indexOf("__") >= 0) {
+          var tokens = model.split("__");
+          if (!by_module[tokens[0]])
+            by_module[tokens[0]] = [];
+          by_module[tokens[0]].push(tokens.slice(1).join("__"));
+        }
+        else {
+          if (!by_module[""])
+            by_module[""] = [];
+          by_module[""].push(model);
+        }
+      }
+      var modules = [];
+      for (var k in by_module) {
+        by_module[k].sort();
+        modules.push({ module: k, models: by_module[k] });
+      }
+      $scope.modules = modules;
+    }
+  });
+
   $scope.delayCheckQuery = function() {
     if ($scope.delayPromise !== undefined) {
       $timeout.cancel($scope.delayPromise);
