@@ -8,7 +8,7 @@ before_install:
     - uname -a
     - lsb_release -a
     - sudo apt-get -qq update
-    - sudo apt-get -y install curl build-essential python-dev samtools '^zlib.*-dev$'
+    - sudo apt-get -y install bower python-dev 
 install:
     - pip install coveralls
     - python setup.py install
