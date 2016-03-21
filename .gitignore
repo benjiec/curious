@@ -1,3 +1,7 @@
 .webassets-cache
 *.pyc
 .*.swp
+build
+*.egg-info*
+dist
+env
