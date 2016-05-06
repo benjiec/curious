@@ -1,8 +1,9 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.db import connection, reset_queries
 from curious.graph import traverse
 from curious_tests.models import Blog, Entry, Author
 
+@override_settings(DEBUG=True)
 class TestQueryCount(TestCase):
   N = 20
 

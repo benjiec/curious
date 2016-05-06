@@ -1,8 +1,9 @@
 from curious import deferred_to_real
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.db import connection, reset_queries
 from curious_tests.models import Blog, Entry
 
+@override_settings(DEBUG=True)
 class TestDeferredToReal(TestCase):
 
   def setUp(self):
