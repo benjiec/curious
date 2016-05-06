@@ -144,7 +144,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       rel_obj_attr = rel_field.get_local_related_value
       rel_column = rel_field.column
 
-      rel_model = rel_obj_descriptor.related.model
+      rel_model = rel_obj_descriptor.related.related_model
       rel_mgr = rel_model._default_manager.__class__()
       rel_mgr.model = rel_model
 

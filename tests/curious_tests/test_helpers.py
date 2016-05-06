@@ -1,6 +1,6 @@
 from curious import deferred_to_real
 from django.test import TestCase
-from django.db import connection
+from django.db import connection, reset_queries
 from curious_tests.models import Blog, Entry
 
 class TestDeferredToReal(TestCase):
@@ -36,7 +36,7 @@ class TestDeferredToReal(TestCase):
   def test_conversion_uses_single_query(self):
     entries = list(Entry.objects.filter(blog__name='Databases').only('id'))
     connection.use_debug_cursor = True
-    connection.queries = []
+    reset_queries()
     entries = list(deferred_to_real(entries))
     self.assertEquals(len(connection.queries), 1)
 

@@ -1,5 +1,5 @@
 # core django stuff
-Django == 1.6
+Django == 1.8.*
 django-nose
 
 # nose coverage

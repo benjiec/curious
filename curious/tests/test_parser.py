@@ -29,6 +29,7 @@ class ParserTests(TestCase):
                                               'kwargs': {'a': '3 days ago'} }]}])
 
   def test_converts_date_strings_with_years(self):
+    from datetime import timedelta
     p = Parser('A(1) B.b(a=t"3 years ago")')
     t = p.steps[0]['filters'][0]['kwargs']['a']
     s = str(humanize.naturaltime(t))
@@ -36,7 +37,8 @@ class ParserTests(TestCase):
 
     p = Parser('A(1) B.b(a=t"3 years from now")')
     t = p.steps[0]['filters'][0]['kwargs']['a']
-    s = str(humanize.naturaltime(t))
+    # we have to add time here because the duration of the tests run make this slightly less than 3 years from now
+    s = str(humanize.naturaltime(t+timedelta(minutes=1)))
     self.assertEquals(s, "3 years from now")
 
   def test_converts_date_strings_with_days(self):
