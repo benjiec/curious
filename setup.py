@@ -3,30 +3,59 @@
 import os
 import sys
 import subprocess
-from setuptools import setup
+import setuptools
 
-README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
+class BowerBuildCommand(setuptools.Command):
+    description = "run bower commands."
+    user_options = [
+        ('bower-command=', 'c',
+         'Bower command to run. Defaults to \'install\'.'),
+        ('force-latest', 'F', 'Force latest version on conflict.'),
+        ('production', 'p', 'Do not install project devDependencies.'),
+    ]
 
-# allow setup.py to be run from any path
-os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
+    boolean_options = ['production', 'force-latest']
 
-with open("requirements.txt", "r") as f:
-    install_requires = [x.strip() for x in f.readlines() if not x.strip().startswith("#")]
+    def initialize_options(self):
+        self.force_latest = False
+        self.production = False
+        self.bower_command = 'install'
 
-def bower():
-  if sys.argv[1] in ['develop', 'install']:
-    print 'Running bower update in %s' % os.getcwd()
-    subprocess.call(['bower', 'update'])
+    def finalize_options(self):
+        pass
 
-bower()
+    def run(self):
+        cmd = ['bower', self.bower_command]
+        if self.force_latest:
+            cmd.append('-F')
+        if self.production:
+            cmd.append('-p')
+        self.spawn(cmd)
 
-setup(name="curious",
-      version="0.1",
-      author="Benjie Chen, Ginkgo Bioworks",
-      author_email="benjie@ginkgobioworks.com",
-      description="Data exploration tool",
-      license="MIT",
-      packages=['curious'],
-      include_package_data=True,
-      zip_safe=True,
-      install_requires=install_requires)
+def collect_requirements():
+    requirements_fn = os.path.join(SourceDir, "requirements.txt")
+    with open(requirements_fn) as reqfh:
+        return filter(lambda txt: txt and txt[0] != '#', map(str.strip, reqfh.readlines()))
+
+SourceDir = os.path.split(os.path.abspath(__file__))[0]
+SetupConfiguration = {
+    "name": "curious",
+    "version": "0.1",
+    "author": "Benjie Chen, Ginkgo Bioworks",
+    "author_email": "benjie@ginkgobioworks.com",
+    "description": "Data exploration tool",
+    "license": "MIT",
+    "packages": ['curious'],
+    "include_package_data": True,
+    "zip_safe": True,
+    "cmdclass": {
+        "install_bower": BowerBuildCommand,
+    },
+}
+
+if __name__ == "__main__":
+    # allow setup.py to be run from any path
+    os.chdir(SourceDir)
+    conf = SetupConfiguration.copy()
+    conf["install_requires"] = collect_requirements()
+    setuptools.setup(**conf)
