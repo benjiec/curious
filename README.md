@@ -1,15 +1,33 @@
 Curious
 =======
 
-Curious aims to simplify some common database querying and report generation tasks. Curious queries let you quickly explore relationships among objects, search for objects using recursive relationships, and search for objects loosely connected among different databases. Curious UI provides an interactive UI to results of a query, allowing users to sort, filter, and group results, and to continue their explorations from past results.
+Curious traverses relationships in a relational database. Curious queries allow
+users to explore relationships among objects, traverse recursive relationships,
+and jump between loosely connected databases. Curious also provides a JSON
+interface to the objects. Users and programmers can use Curious queries in
+analysis scripts and applications.
 
-Curious does not replace the need to write customized UIs; the Curious UI provides a quick way to generate tables joining relational data, to help users explore data without writing code. Curious also does not replace the need to write raw SQL queries for complex queries; the Curious query language offers similar capabilities as Django QuerySets: it supports simpler filtering on single and connected models, but leaves complex queries to raw SQL.
+Curious favors a data centric model of application construction; Curious
+queries expose normalized, relational data, reducing UI dependency on UI
+specific API end-points serving denormalized data. Changing what data an UI
+needs no longer requires changing the UI specific end-points.
 
-Curious works with Django models; you can use Curious to explore data created by your existing Django applications, or build Django models to shadow non-Django managed databases (e.g. fairly trivial to do this for ActiveRecord generated databases). User queries operate on models and instances, and specify model to model relationships to traverse. A relationship can be an foreign key or many to many relationship defined by the models, or registered methods that traverse across multiple models (for convenience or performance) or even databases.
+Curious works well with deep data models with many relationships. A Curious
+query can traverse 10s of foreign key like relationships efficiently. Curious
+queries always operate on sets of objects, and can connect a small number of
+objects via a relationship to a large number of objects, then via another
+relationship from the large number of objects to a smaller set again. For
+example, Book to Authors to Country of Residence. Unlike GraphQL, Curious
+outputs relationships between objects, rather than an ever growing tree of JSON
+representations of the objects.
 
 
 Example
 -------
+
+```
+Book.last(10) Book.author_set Author.country(continent__name="North America")
+```
 
 
 Query Language
@@ -22,6 +40,16 @@ t modifier for dates.
 
 Configuring Curious
 -------------------
+
+```
+import myapp.models
+from curious import model_registry
+
+def register():
+  model_registry.register(myapp.models)
+```
+
+Then include ```register``` when your Django app boots up.
 
 
 Using Curious
@@ -36,11 +64,19 @@ Writing Customized Relationships
 Use filter and deferred to real functions.
 
 
-How Curious Works
------------------
+Development
+-----------
 
+Requires docker
 
-Criticisms
-----------
+Build js assets for the UI
 
-Esoteric query syntax; may be nice for programmers, but not for human. Sits in between fully customized UI with customized queries and raw SQL with high flexibility; does it make a DBA's job easier or have enough power to handle simple queries?
+```
+./build
+```
+
+Run tests
+
+```
+./test
+```

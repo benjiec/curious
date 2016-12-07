@@ -275,11 +275,38 @@ class TestQueryRecursive(TestCase):
     assertQueryResultsEqual(self, result[0][1][0],
                             [(self.entries[0], self.entries[0].pk),
                              (self.entries[1], self.entries[0].pk),
-                             # the follow two are omited
-                             #(self.entries[2], self.entries[0].pk),
-                             #(self.entries[3], self.entries[0].pk),
+                             (self.entries[2], self.entries[0].pk),
+                             (self.entries[3], self.entries[0].pk),
                              (self.entries[1], self.entries[1].pk),
                              (self.entries[2], self.entries[1].pk),
                              (self.entries[3], self.entries[1].pk),
+                            ])
+    self.assertEquals(result[1], Entry)
+
+  def test_recursive_traversal_does_not_get_stuck_in_loop(self):
+    blog = Blog(name='Weird CS Terms')
+    blog.save()
+    headlines = ('Foo', 'Bar', 'Baz', 'Faz')
+    entries = [Entry(headline=headline, blog=blog) for headline in headlines]
+    for entry in entries:
+      entry.save()
+    entries[1].response_to = entries[0]
+    entries[1].save()
+    entries[2].response_to = entries[1]
+    entries[2].save()
+    entries[3].response_to = entries[2]
+    entries[3].save()
+    entries[0].response_to = entries[3]
+    entries[0].save()
+
+    qs = 'Entry(id__in=[%s]) Entry.responses*' % (entries[0].id,)
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0],
+                            [(entries[0], None),
+                             (entries[1], None),
+                             (entries[2], None),
+                             (entries[3], None),
                             ])
     self.assertEquals(result[1], Entry)

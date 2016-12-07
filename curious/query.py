@@ -158,14 +158,17 @@ class Query(object):
     visited = {}
 
     while len(obj_src) > 0:
-      # prevent loops by removing previously visited objects
-      new_src = [tup for tup in obj_src if tup[0].pk not in visited]
-      for obj, src in obj_src:
-        visited[obj.pk] = 1
+      # prevent loops by removing previously encountered edges; because many
+      # edges can lead to the same object, preventing revisit of edges rather
+      # than objects avoids loops without missing out on an edge.
+      new_src = [tup for tup in obj_src if tup not in visited]
+      for tup in obj_src:
+        visited[tup] = 1
 
       if len(new_src) == 0:
         break
       next_obj_src = Query._graph_step(new_src, model, step_f, filters, tree)
+      # print "from %s\nreach %s" % (new_src, next_obj_src)
 
       if collect == 'terminal':
         next_demux = Query._graph_step([(obj, obj.pk) for obj, src in obj_src], model, step_f, filters)
