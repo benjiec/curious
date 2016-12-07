@@ -34,10 +34,10 @@ class ParserTests(TestCase):
     s = str(humanize.naturaltime(t))
     self.assertEquals(s, "3 years ago")
 
-    p = Parser('A(1) B.b(a=t"3 years from now")')
+    p = Parser('A(1) B.b(a=t"10 years from now")')
     t = p.steps[0]['filters'][0]['kwargs']['a']
     s = str(humanize.naturaltime(t))
-    self.assertEquals(s, "3 years from now")
+    self.assertEquals(s, "10 years from now")
 
   def test_converts_date_strings_with_days(self):
     p = Parser('A(1) B.b(a=t"3 days ago")')

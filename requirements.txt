@@ -1,6 +1,6 @@
 # core django stuff
 Django == 1.6
-django-nose
+django-nose == 1.2
 
 # nose coverage
 coveralls
