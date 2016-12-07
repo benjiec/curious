@@ -190,3 +190,96 @@ class TestQueryRecursive(TestCase):
     self.assertEquals(result[0][0][1], -1)
     assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
+
+  def test_recursive_traversal_from_same_model(self):
+    qs = 'Entry(%s) Entry.responses*' % self.entries[0].id
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0],
+                            [(self.entries[0], None),
+                             (self.entries[1], None),
+                             (self.entries[2], None),
+                             (self.entries[3], None),
+                            ])
+    self.assertEquals(result[1], Entry)
+
+  def test_recursive_traversal_from_same_model(self):
+    qs = 'Entry(%s) Entry.responses*' % self.entries[0].id
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0],
+                            [(self.entries[0], None),
+                             (self.entries[1], None),
+                             (self.entries[2], None),
+                             (self.entries[3], None),
+                            ])
+    self.assertEquals(result[1], Entry)
+
+  def test_recursive_traversal_on_same_model_from_multiple_objects(self):
+    blog = Blog(name='Weird CS Terms')
+    blog.save()
+    headlines = ('Foo', 'Bar', 'Baz', 'Faz')
+    entries = [Entry(headline=headline, blog=blog) for headline in headlines]
+    for entry in entries:
+      entry.save()
+    entries[1].response_to = entries[0]
+    entries[1].save()
+    entries[2].response_to = entries[1]
+    entries[2].save()
+    entries[3].response_to = entries[2]
+    entries[3].save()
+
+    qs = 'Entry(id__in=[%s,%s]) Entry.responses*' % (self.entries[0].id, entries[0].id)
+    query = Query(qs)
+    result = query()
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0],
+                            [(self.entries[0], None),
+                             (self.entries[1], None),
+                             (self.entries[2], None),
+                             (self.entries[3], None),
+                             (entries[0], None),
+                             (entries[1], None),
+                             (entries[2], None),
+                             (entries[3], None),
+                            ])
+    self.assertEquals(result[1], Entry)
+
+  def test_match_source_object_with_recursively_found_objects_including_self(self):
+    qs = 'Entry(id__in=[%s]), Entry.responses*' % (self.entries[0].id,)
+    query = Query(qs)
+    result = query()
+
+    self.assertEquals(len(result[0]), 2)
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
+    self.assertEquals(result[0][1][1], 0)
+    assertQueryResultsEqual(self, result[0][1][0],
+                            [(self.entries[0], self.entries[0].pk),
+                             (self.entries[1], self.entries[0].pk),
+                             (self.entries[2], self.entries[0].pk),
+                             (self.entries[3], self.entries[0].pk)])
+    self.assertEquals(result[1], Entry)
+
+  def test_match_related_source_objects_with_recursively_found_objects(self):
+    qs = 'Entry(id__in=[%s,%s]), Entry.responses*' % (self.entries[0].id, self.entries[1].id)
+    query = Query(qs)
+    result = query()
+
+    self.assertEquals(len(result[0]), 2)
+    self.assertEquals(result[0][0][1], -1)
+    assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None), (self.entries[1],None)])
+    self.assertEquals(result[0][1][1], 0)
+    assertQueryResultsEqual(self, result[0][1][0],
+                            [(self.entries[0], self.entries[0].pk),
+                             (self.entries[1], self.entries[0].pk),
+                             # the follow two are omited
+                             #(self.entries[2], self.entries[0].pk),
+                             #(self.entries[3], self.entries[0].pk),
+                             (self.entries[1], self.entries[1].pk),
+                             (self.entries[2], self.entries[1].pk),
+                             (self.entries[3], self.entries[1].pk),
+                            ])
+    self.assertEquals(result[1], Entry)
