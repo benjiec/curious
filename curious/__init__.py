@@ -84,7 +84,7 @@ class ModelRegistry(object):
       if name in self.__short_names:
         if len(self.__short_names[name]) != 1:
           raise Exception('Ambiguous model name "%s": can match to %s' %
-                          (name, ', '.join(self.__short_names[name])))
+                          (name, ', '.join(self.__short_names[name].short_name)))
         else:
           model_name = self.__short_names[name][0].model_name
       else:
