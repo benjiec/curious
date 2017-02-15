@@ -130,6 +130,11 @@ class ModelView(JSONView):
     return dict(fields=fields, objects=packed, urls=urls)
 
   @staticmethod
+  def get_model_fks(model_class):
+    # Return a list of all foreign keys from a model class
+    return [f for f in model_class._meta.fields if type(f) == ForeignKey]
+
+  @staticmethod
   def get_objects_as_json(model_class, ids, ignore_excludes, follow_fk, force_reload, app):
     cache_k = 'curious_cache_v%s_app_%s_object_data_%s/%s_%s_%s' % (
       CACHE_VERSION, app, model_class, ids, ignore_excludes, follow_fk
@@ -142,10 +147,12 @@ class ModelView(JSONView):
 
     if cache_v is None:
       if hasattr(model_class, '_meta'):
-        fks = []
-        for f in model_class._meta.fields:
-          if type(f) == ForeignKey:
-            fks.append(f.name)
+        fks = set()
+        for f in ModelView.get_model_fks(model_class):
+          fks.add(f.name)
+          for f2 in ModelView.get_model_fks(f.related.parent_model):
+            if f.name != f2.name:
+              fks.add('{}__{}'.format(f.name, f2.name))
         q = model_class.objects.filter(pk__in=ids)
         if len(fks) > 0 and follow_fk is True:
           q = q.select_related(*fks)
