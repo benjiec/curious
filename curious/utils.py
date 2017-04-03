@@ -1,8 +1,10 @@
+from functools import wraps
 import time
 from . import settings
 
 # for development/debugging
 def report_time(f):
+  @wraps(f)
   def wrap(*args, **kwargs):
     t = time.time()
     r = f(*args, **kwargs)
