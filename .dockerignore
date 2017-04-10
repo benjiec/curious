@@ -1,1 +1,5 @@
+curious/static/lib/**
+**/*.pyc
+.tox
 .git
+.webassets-cache
