@@ -1,26 +1,34 @@
-.PHONY: clean clean-pyc clean-build \
+.PHONY: clean clean-pyc clean-build clean-js \
+	build_assets \
 	test test-tox \
 	bump/major bump/minor bump/patch \
 	start \
 	release
 
 CURIOUS_HOME ?= /usr/src/curious
-MANAGE = python ${CURIOUS_HOME}/tests/manage.py
-SETUP = python ${CURIOUS_HOME}/setup.py
+MANAGE = python tests/manage.py
+SETUP = python setup.py
 
 all: test-tox
 
-clean: clean-build clean-pyc
+build_assets:
+	${SETUP} build_assets
+
+clean: clean-build clean-pyc clean-js
 
 clean-build:
-	rm -fr build/
-	rm -fr dist/
-	rm -fr *.egg-info
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
+
+clean-js:
+	rm -rf curious/static/curious/lib/*
+	rm -rf curious/static/curious/dist/*
 
 test:
 	${MANAGE} test
@@ -36,15 +44,16 @@ release: clean sdist bdist_wheel
 	twine upload dist/*
 
 sdist:
-	python setup.py sdist
+	${SETUP} sdist
 	ls -l dist
 
 bdist_wheel:
-	python setup.py bdist_wheel
+	${SETUP} bdist_wheel
 	ls -l dist
 
-start:
+start: build_assets
 	${MANAGE} runserver ${SERVER_IP}:${SERVER_PORT}
+
 
 MAKE_EXT = docker-compose run --rm curious make -C ${CURIOUS_HOME}
 
