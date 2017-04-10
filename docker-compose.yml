@@ -1,6 +1,16 @@
-version: '2'
+version: '2.1'
 services:
   curious:
     build: .
     volumes:
-      - .:/curious
+      - caches:/root/.cache
+      - .:${CURIOUS_HOME:-/usr/src/curious}
+      - bower_components:${CURIOUS_HOME:-/usr/src/curious}/curious/static/curious/lib
+    tty:
+      true
+    ports:
+      - ${SERVER_PORT:-8080}:${SERVER_PORT:-8080}
+
+volumes:
+  caches:
+  bower_components:
