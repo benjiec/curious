@@ -92,7 +92,7 @@ setup(
   license='MIT',
   keywords='graph query django sql curious database ginkgo',
   classifiers=[
-    'Development Status :: 5 - Production',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Web Environment',
     'Environment :: Other Environment',
     'Framework :: Django :: 1.6',
