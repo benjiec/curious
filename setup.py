@@ -7,11 +7,6 @@ from subprocess import check_output, STDOUT
 
 from setuptools import setup, Command
 
-from webassets import Bundle
-from webassets import Environment
-from webassets.script import CommandLineEnvironment
-
-
 class BowerBuildCommand(Command):
   description = 'run bower commands [install by default]'
   user_options = [
@@ -59,6 +54,10 @@ class WebassetsBuildCommand(Command):
       pass
 
   def run(self):
+    from webassets import Bundle
+    from webassets import Environment
+    from webassets.script import CommandLineEnvironment
+
     css = Bundle('curious/src/css/app.css', output='curious/dist/curious.css')
     js = Bundle('curious/src/js/*.js', output='curious/dist/curious.js')
     jsm = Bundle('curious/src/js/*.js', filters='jsmin', output='curious/dist/curious.min.js')
