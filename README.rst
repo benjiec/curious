@@ -63,14 +63,8 @@ Development
 
 Requires Docker
 
-Build js assets for the UI
+Run tests (outside of Docker container, on host machine)
 
 ::
 
-    ./build
-
-Run tests
-
-::
-
-    ./test
+    ./make test-ext
