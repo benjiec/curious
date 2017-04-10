@@ -6,6 +6,6 @@ env:
 before_install:
     - npm install -g bower
 install:
-    - pip install -e
+    - pip install -e .
 script:
     - make test-tox
