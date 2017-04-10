@@ -180,13 +180,13 @@ class TestDateTimeParsing(TestCase):
     p = Parser('A(1) B.b(a=t"10 seconds from now")')
     t = p.steps[0]['filters'][0]['kwargs']['a']
     t_natural = str(humanize.naturaltime(t))
-    self.assertEquals(t_natural in ["10 seconds from now", "9 seconds from now"], True)
+    self.assertIn(t_natural, ["10 seconds from now", "9 seconds from now"])
 
   def test_converts_date_strings_with_year_and_days_incorrectly(self):
     p = Parser('A(1) B.b(a=t"1 year 3 days ago")')
     t = p.steps[0]['filters'][0]['kwargs']['a']
     t_natural = str(humanize.naturaltime(t))
-    self.assertEquals(t_natural, "11 months ago")
+    self.assertIn("11 months", t_natural)
 
   def test_converts_a_specific_date(self):
     p = Parser('A(1) B.b(a=t"Aug 22nd 2014")')
