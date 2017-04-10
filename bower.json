@@ -8,5 +8,6 @@
     "angular-sanitize": "1.2.4",
     "pourover": "1.2.0",
     "string": "2.0.1"
-  }
+  },
+  "private": true
 }
