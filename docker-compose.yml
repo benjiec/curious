@@ -1,7 +1,11 @@
 version: '2.1'
 services:
   curious:
-    build: .
+    build:
+      context: .
+      args:
+        - GIT_USER_NAME
+        - GIT_USER_EMAIL
     volumes:
       - caches:/root/.cache
       - .:${CURIOUS_HOME:-/usr/src/curious}

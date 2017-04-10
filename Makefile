@@ -63,4 +63,4 @@ MAKE_EXT = docker-compose run --rm curious make -C ${CURIOUS_HOME}
 
 # Build the image
 image:
-	docker-compose build --pull
+	GIT_USER_NAME=`git config user.name` GIT_USER_EMAIL=`git config user.email` docker-compose build --pull

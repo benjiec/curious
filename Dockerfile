@@ -4,6 +4,12 @@
 FROM python:2.7
 LABEL maintainer Ginkgo Bioworks <devs@ginkgobioworks.com>
 
+ARG GIT_USER_NAME="Curious Default"
+ARG GIT_USER_EMAIL="devs@ginkgobioworks.com"
+
+RUN git config --global user.name "$GIT_USER_NAME" \
+    && git config --global user.email "$GIT_USER_EMAIL"
+
 ARG DEBIAN_FRONTEND=noninteractive
 ENV CURIOUS_HOME=/usr/src/curious
 ENV SERVER_IP=0.0.0.0

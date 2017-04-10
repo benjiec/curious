@@ -64,10 +64,26 @@ Use filter and deferred to real functions.
 Development
 -----------
 
-Requires Docker
+Requires Docker. Spin up your container using the provided ``docker-compose.yml`` file and Makefile
+by running ``make image``. This creates an image with a correct git configuration for your user,
+which makes it easy to release. All of the commands you should need to run are defined the
+``Makefile`` as targets. All of the targets except for ``image``, are meant to be run inside the
+Docker container, but can be run from the host machine by having ``-ext`` appended to them. For
+example, to run tests, you could either call ``make test`` from inside the container, or ``make
+test-ext`` from the host.
 
-Run tests (outside of Docker container, on host machine)
+If you are modifying the static assets during development, they can be recompiled with the
+``build_assets`` make task, or by calling ``python setup.py build_assets``.
 
 ::
 
     ./make test-ext
+
+
+Deployment
+----------
+
+Deployment of tagged commits happens to PyPI automatically via Travis CI. To bump and deploy a new
+version, run ``make bump/[foo]-ext``, where ``[foo]`` is ``major``, ``minor``, or ``patch``. Then
+``git push origin --tags master``.
+
