@@ -1,5 +1,6 @@
 include LICENSE.txt
 include README.rst
 recursive-include curious/static *
+prune curious/static/curious/lib
 recursive-exclude * *.pyc
 recursive-exclude * .*.swp
