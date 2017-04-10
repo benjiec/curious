@@ -1,12 +1,21 @@
 language: python
 python:
-    - 2.7
+- 2.7
 env:
-    - TOXENV=py27-django16
+- TOXENV=py27-django16
 before_install:
-    - npm install --global bower
+- npm install --global bower
 install:
-    - pip install --requirement requirements.txt
-    - pip install --editable .
+- pip install --requirement requirements.txt
+- pip install --editable .
 script:
-    - make test-tox
+- make test-tox
+deploy:
+  provider: pypi
+  user: ginkgodev
+  password:
+    secure: i/Fg9+YoKT61sdT1/xKmY2PBAGzx0yK5S+WS1ArjyOznhQQFewwizeNyJbmQzpzSOYsAE3vau0cQYqqrmUn/LawNW2mx6zkhyFkyJgzF1IEh69376qU4jIx0TSncFRl/CiIl9nMxSg3CCHG2qG9E3MJKDsCTN2QV2GH+pgPLbkiZK/9c94N5OeRQ5AQdXQoUnfOvyO9Z6WIUu8DjX/pUF31Tfhnaq6i51J9pQFbsbkLHTnQOPiyQDy+BRmfuGKMDg03GHwGqEcNogvmpaXAeZXVrDs2ENon8Izgt2MbzHsfAFbVab+7KpfL1VLcgCLQT2Iwn3svIhAJCFzBWomMI9dhpPbYQom+iDoG09+c1c4urefWGKnjjEdMSl3QpT/FpWw+4f7Fr1kodWW8v/IPAY7BTerYVwaHzRxbCoG0K5LfDNEG8sdemZY99AIC5CpUX8ZhtwwzxuHSMdOM9kEQKx82Em+dA94AGzWhST1IUdy46sqq4YzjcWn19O7CVD/mToPjerHM7XXljgBKQKeQw0B7WEyLUikHyr84PtfK7qjPncwC67jibYObQCzYKR7ZncS9gGNIZOOwXAJz+AwU13zU8GEStrUDx7tB8YB3h684pAz5vhxcW1mnPJyKuXh37aNzeVN54ae4P0cxK3kx/1H2SwQRbDlC0UWZhrZPHOF4=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: ginkgobioworks/curious
