@@ -1,6 +1,9 @@
 Curious
 =======
 
+.. image:: https://travis-ci.org/ginkgobioworks/curious.svg?branch=master
+    :target: https://travis-ci.org/ginkgobioworks/curious
+
 Curious traverses relationships in a relational database. Curious
 queries allow users to explore relationships among objects, traverse
 recursive relationships, and jump between loosely connected databases.
