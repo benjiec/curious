@@ -4,8 +4,9 @@ python:
 env:
     - TOXENV=py27-django16
 before_install:
-    - npm install -g bower
+    - npm install --global bower
 install:
-    - pip install -e .
+    - pip install --requirement requirements.txt
+    - pip install --editable .
 script:
     - make test-tox
