@@ -1,4 +1,5 @@
-.PHONY: clean clean-pyc clean-build clean-js \
+.PHONY: image \
+	clean clean-pyc clean-build clean-js \
 	build_assets \
 	test test-tox \
 	bump/major bump/minor bump/patch \
