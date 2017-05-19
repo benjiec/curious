@@ -80,7 +80,7 @@ class WebassetsBuildCommand(Command):
 
 setup(
   name='curious',
-  version='0.2.2',
+  version='0.2.3',
 
   author='Benjie Chen, Ginkgo Bioworks',
   author_email='benjie@ginkgobioworks.com, devs@ginkgobioworks.com',
