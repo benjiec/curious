@@ -11,9 +11,9 @@ RUN git config --global user.name "$GIT_USER_NAME" \
     && git config --global user.email "$GIT_USER_EMAIL"
 
 ARG DEBIAN_FRONTEND=noninteractive
-ENV CURIOUS_HOME=/usr/src/curious
-ENV SERVER_IP=0.0.0.0
-ENV SERVER_PORT=8080
+ENV CURIOUS_HOME=/usr/src/curious \
+    SERVER_IP=0.0.0.0 \
+    SERVER_PORT=8080
 
 RUN apt-get update
 RUN apt-get install --assume-yes apt-utils nodejs nodejs-legacy npm
