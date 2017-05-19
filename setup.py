@@ -120,6 +120,8 @@ setup(
 
   packages=['curious'],
   include_package_data=True,
+  zip_safe=True,
+
   setup_requires=[
     'webassets',
     'jsmin',
@@ -136,5 +138,4 @@ setup(
     'django-nose < 1.4',
     'coverage',
   ],
-  zip_safe=True,
 )
