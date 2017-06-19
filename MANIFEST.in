@@ -1,6 +1,7 @@
 include LICENSE.txt
 include README.rst
 recursive-include curious/static *
+recursive-include curious/templates *
 prune curious/static/curious/lib
 recursive-exclude * *.gitignore
 recursive-exclude * *.pyc
