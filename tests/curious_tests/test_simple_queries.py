@@ -51,6 +51,24 @@ class TestSimpleQueries(TestCase):
     assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
 
+  def test_query_with_empty_array_filter(self):
+    qs = 'Entry(id__in=[])'
+    query = Query(qs)
+    result = query()
+    self.assertFalse(result[0][0][0])
+
+  def test_query_with_spaces_only_array_filter(self):
+    qs = 'Entry(id__in=[  ])'
+    query = Query(qs)
+    result = query()
+    self.assertFalse(result[0][0][0])
+
+  def test_query_exlcuding_empty_array_filter(self):
+    qs = 'Entry.exclude(id__in=[])'
+    query = Query(qs)
+    result = query()
+    self.assertEquals(3, len(result[0][0][0]))
+
   def test_query_traversing_to_fk_object(self):
     qs = 'Entry(%s) Entry.blog' % self.entries[0].pk
     query = Query(qs)
