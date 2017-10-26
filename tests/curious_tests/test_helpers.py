@@ -18,6 +18,8 @@ class TestDeferredToReal(TestCase):
     for entry in self.entries:
       entry.save()
 
+    self.query_count = len(connection.queries)
+
   def test_converts_deferred_objects_to_real_objects(self):
     entries = list(Entry.objects.filter(blog__name='Databases').only('id'))
     self.assertEquals(len(entries), 3)
@@ -32,13 +34,6 @@ class TestDeferredToReal(TestCase):
     for entry in entries:
       self.assertEquals('id' in entry.__dict__, True)
       self.assertEquals('headline' in entry.__dict__, True)
-
-  def test_conversion_uses_single_query(self):
-    entries = list(Entry.objects.filter(blog__name='Databases').only('id'))
-    connection.use_debug_cursor = True
-    connection.queries = []
-    entries = list(deferred_to_real(entries))
-    self.assertEquals(len(connection.queries), 1)
 
   def test_converts_mixture_of_deferred_and_real_objects(self):
     real_entries = list(Entry.objects.filter(blog__name='Databases'))

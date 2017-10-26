@@ -7,7 +7,7 @@ def redirect_to_static(request):
   path = request.get_full_path()
   return HttpResponseRedirect('/static%s' % path)
 
-urlpatterns = patterns('',
+urlpatterns = [
   url(r'^objects/(?P<model_name>[\w\-]+)/(?P<id>[\w\-]+)/$', ObjectView.as_view()),
   url(r'^models/(?P<model_name>[\w\-]+)/$', ModelView.as_view()),
   url(r'^models/$', ModelListView.as_view()),
@@ -20,4 +20,4 @@ urlpatterns = patterns('',
   url(r'^$', TemplateView.as_view(template_name='curious/curious.html'), name='curious'),
   url(r'^dist', redirect_to_static),
   url(r'^lib', redirect_to_static),
-)
+]
