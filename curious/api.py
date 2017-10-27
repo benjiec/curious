@@ -3,7 +3,7 @@ import types
 from decimal import Decimal
 from datetime import datetime
 from humanize import naturaltime
-from django.core.cache import caches
+from django.core.cache import caches, InvalidCacheBackendError
 from django.db.models.fields.related import ForeignKey
 from django.http import HttpResponse
 from django.views.generic.base import View
@@ -18,7 +18,7 @@ CACHE_VERSION = 5
 CACHE_TIMEOUT = 60*60
 try:
   cache = caches['curious']
-except:
+except InvalidCacheBackendError:
   cache = caches['default']
 
 

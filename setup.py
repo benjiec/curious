@@ -135,7 +135,7 @@ setup(
   tests_require=[
     'tox',
     'nose',
-    'django-nose ~= 1.4',
+    'django-nose',
     'coverage',
   ],
 )

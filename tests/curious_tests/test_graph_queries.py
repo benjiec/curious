@@ -33,7 +33,7 @@ class TestQueryCount(TestCase):
     connection.use_debug_cursor = True
     authors = traverse(self.entries, Entry.authors)
     self.assertEquals(len(authors), 2*TestQueryCount.N)
-    self.assertEquals(len(connection.queries)-self.query_count, 1)
+    self.assertEquals(len(connection.queries) - self.query_count, 1)
 
   @override_settings(DEBUG=True)
   def test_single_query_for_M2M_with_filter(self):
@@ -41,25 +41,25 @@ class TestQueryCount(TestCase):
     f = dict(method='filter', kwargs=dict(name__icontains='Smith'))
     authors = traverse(self.entries, Entry.authors, filters=[f])
     self.assertEquals(len(authors), 2*TestQueryCount.N)
-    self.assertEquals(len(connection.queries)-self.query_count, 1)
+    self.assertEquals(len(connection.queries) - self.query_count, 1)
 
   @override_settings(DEBUG=True)
   def test_single_query_for_reverse_M2M(self):
     connection.use_debug_cursor = True
     entries = traverse(self.authors, Author.entry_set)
     self.assertEquals(len(entries), 2*TestQueryCount.N)
-    self.assertEquals(len(connection.queries)-self.query_count, 1)
+    self.assertEquals(len(connection.queries) - self.query_count, 1)
 
   @override_settings(DEBUG=True)
   def test_single_query_for_FK(self):
     connection.use_debug_cursor = True
     blogs = traverse(self.entries, Entry.blog)
     self.assertEquals(len(blogs), TestQueryCount.N)
-    self.assertEquals(len(connection.queries)-self.query_count, 1)
+    self.assertEquals(len(connection.queries) - self.query_count, 1)
 
   @override_settings(DEBUG=True)
   def test_single_query_for_reverse_FK(self):
     connection.use_debug_cursor = True
     entries = traverse(self.blogs, Blog.entry_set)
     self.assertEquals(len(entries), TestQueryCount.N)
-    self.assertEquals(len(connection.queries)-self.query_count, 1)
+    self.assertEquals(len(connection.queries) - self.query_count, 1)
