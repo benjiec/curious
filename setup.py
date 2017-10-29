@@ -127,7 +127,7 @@ setup(
     'jsmin',
   ],
   install_requires=[
-    'Django < 1.7',
+    'Django ~= 1.11',
     'humanize',
     'parsimonious == 0.5',
     'parsedatetime ~= 1.0',
@@ -135,7 +135,7 @@ setup(
   tests_require=[
     'tox',
     'nose',
-    'django-nose < 1.4',
+    'django-nose',
     'coverage',
   ],
 )

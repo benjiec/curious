@@ -2,7 +2,7 @@ language: python
 python:
 - 2.7
 env:
-- TOXENV=py27-django16
+- TOXENV=py27-django111
 before_install:
 - npm install --global bower
 install:

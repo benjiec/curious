@@ -3,8 +3,7 @@ import types
 from decimal import Decimal
 from datetime import datetime
 from humanize import naturaltime
-from django.core.cache import get_cache
-from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
+from django.core.cache import caches, InvalidCacheBackendError
 from django.db.models.fields.related import ForeignKey
 from django.http import HttpResponse
 from django.views.generic.base import View
@@ -18,9 +17,9 @@ import time
 CACHE_VERSION = 5
 CACHE_TIMEOUT = 60*60
 try:
-  cache = get_cache('curious')
-except:
-  cache = get_cache('default')
+  cache = caches['curious']
+except InvalidCacheBackendError:
+  cache = caches['default']
 
 
 def get_param_value(params, k, default):
