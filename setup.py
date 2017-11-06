@@ -3,9 +3,15 @@ from __future__ import print_function
 
 import logging
 import os
-from subprocess import check_output, STDOUT
+import sys
+from subprocess import (
+  CalledProcessError,
+  STDOUT,
+  check_output,
+)
 
 from setuptools import setup, Command
+
 
 class BowerBuildCommand(Command):
   description = 'run bower commands [install by default]'
@@ -26,6 +32,13 @@ class BowerBuildCommand(Command):
   def finalize_options(self):
     pass
 
+  def _run_with_output(self, *args, **kwargs):
+    try:
+      print(check_output(*args, **kwargs))
+    except CalledProcessError as e:
+      print(e.output, file=sys.stderr)
+      raise e
+
   def run(self):
     cmd = ['bower', self.bower_command, '--no-color']
     if self.force_latest:
@@ -34,7 +47,7 @@ class BowerBuildCommand(Command):
       cmd.append('-p')
     if self.allow_root:
       cmd.append('--allow-root')
-    self.debug_print(check_output(cmd, stderr=STDOUT))
+    self._run_with_output(cmd, stderr=STDOUT)
 
 
 class WebassetsBuildCommand(Command):
@@ -60,14 +73,14 @@ class WebassetsBuildCommand(Command):
 
     css = Bundle('curious/src/css/app.css', output='curious/dist/curious.css')
     js = Bundle('curious/src/js/*.js', output='curious/dist/curious.js')
-    jsm = Bundle('curious/src/js/*.js', filters='jsmin', output='curious/dist/curious.min.js')
+    jsmin = Bundle('curious/src/js/*.js', filters='jsmin', output='curious/dist/curious.min.js')
     jst = Bundle('curious/src/html/*.html', filters='jst', output='curious/dist/curious_jst.js')
 
     assets_env = Environment('./curious/static')
     assets_env.cache = self.cache_dir
     assets_env.register('css', css)
     assets_env.register('js', js)
-    assets_env.register('jsmin', jsm)
+    assets_env.register('jsmin', jsmin)
     assets_env.register('jst', jst)
 
     log = logging.getLogger('webassets')
