@@ -10,9 +10,11 @@ from django.db import connections, router
 from django.db.models.query import QuerySet
 from django.db.models import Count, Avg, Max, Min, Sum
 from django.db.models.fields.related_descriptors import (
+  ForwardOneToOneDescriptor,
   ForwardManyToOneDescriptor,
   ManyToManyDescriptor,
-  ReverseManyToOneDescriptor
+  ReverseManyToOneDescriptor,
+  ReverseOneToOneDescriptor,
 )
 
 
@@ -81,7 +83,9 @@ def mk_filter_function(filters):
 def _valid_django_rel(rel_obj_descriptor):
   return type(rel_obj_descriptor) in (ForwardManyToOneDescriptor,
                                       ReverseManyToOneDescriptor,
-                                      ManyToManyDescriptor)
+                                      ManyToManyDescriptor,
+                                      ForwardOneToOneDescriptor,
+                                      ReverseOneToOneDescriptor)
 
 
 # Use this attr of a query output object to determine the input object
@@ -115,7 +119,7 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       return rel_obj_descriptor(instances, apply_filters)
 
     # FK from instance to a related object
-    elif type(rel_obj_descriptor) == ForwardManyToOneDescriptor:
+    elif type(rel_obj_descriptor) in (ForwardManyToOneDescriptor, ForwardOneToOneDescriptor):
       field = rel_obj_descriptor.field
 
       rel_obj_attr = field.get_foreign_related_value
@@ -139,12 +143,15 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
       queryset = queryset.extra(select={INPUT_ATTR_PREFIX: '%s.%s' % (table, pk_field)})
 
     # reverse FK from instance to related objects with FK to the instance
-    elif type(rel_obj_descriptor) == ReverseManyToOneDescriptor:
-      rel_field = rel_obj_descriptor.rel.field
+    elif type(rel_obj_descriptor) in (ReverseManyToOneDescriptor, ReverseOneToOneDescriptor):
+      rel_obj = rel_obj_descriptor.related if (type(rel_obj_descriptor) == ReverseOneToOneDescriptor) else \
+        rel_obj_descriptor.rel
+
+      rel_field = rel_obj.field
       rel_obj_attr = rel_field.get_local_related_value
       rel_column = rel_field.column
 
-      rel_model = rel_obj_descriptor.rel.related_model
+      rel_model = rel_obj.related_model
       rel_mgr = rel_model._default_manager.__class__()
       rel_mgr.model = rel_model
 
