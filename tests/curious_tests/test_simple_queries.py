@@ -1,7 +1,7 @@
 from django.test import TestCase
 from curious import model_registry
 from curious.query import Query
-from curious_tests.models import Blog, Entry, Author
+from curious_tests.models import Blog, Entry, Author, UserTest, UserOneToOne
 from curious_tests import assertQueryResultsEqual
 import curious_tests.models
 
@@ -76,7 +76,26 @@ class TestSimpleQueries(TestCase):
     self.assertEquals(result[0][0][1], -1)
     assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
     self.assertEquals(result[1], Blog)
-  
+
+  def test_query_traversing_to_one_to_one_object(self):
+    user_test = UserTest(name='user a')
+    user_test.save()
+    user_one_to_one = UserOneToOne(user=user_test, extra='extra')
+    user_one_to_one.save()
+
+    qs = 'UserOneToOne(extra="extra") UserOneToOne.user'
+    query = Query(qs)
+    result = query()
+    assertQueryResultsEqual(self, result[0][0][0], [(user_test, None)])
+    self.assertEquals(result[1], UserTest)
+
+    # go back
+    qs = 'UserTest(name="user a") UserTest.useronetoone'
+    query = Query(qs)
+    result = query()
+    assertQueryResultsEqual(self, result[0][0][0], [(user_one_to_one, None)])
+    self.assertEquals(result[1], UserOneToOne)
+
   def test_query_traversing_from_fk_objects(self):
     qs = 'Blog(%s) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
