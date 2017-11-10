@@ -27,19 +27,16 @@ class Blog(models.Model):
     return r
 
 
-class UserTest(models.Model):
-  name = models.CharField(max_length=50)
-
-
-class UserOneToOne(models.Model):
-  user = models.OneToOneField(UserTest)
-  extra = models.CharField(max_length=50)
+class Person(models.Model):
+  gender = models.CharField(max_length=50)
 
 
 class Author(models.Model):
   name = models.CharField(max_length=50)
   age = models.IntegerField(null=True)
   friends = models.ManyToManyField('self')
+
+  person = models.OneToOneField(Person, null=True)
 
   def __unicode__(self):
     return self.name
