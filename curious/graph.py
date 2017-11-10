@@ -144,10 +144,8 @@ def get_related_obj_accessor(rel_obj_descriptor, instance, allow_missing_rel=Fal
 
     # reverse FK from instance to related objects with FK to the instance
     elif type(rel_obj_descriptor) in (ReverseManyToOneDescriptor, ReverseOneToOneDescriptor):
-      if type(rel_obj_descriptor) == ReverseOneToOneDescriptor:
-        rel_obj = rel_obj_descriptor.related
-      else:
-        rel_obj = rel_obj_descriptor.rel
+      rel_obj = rel_obj_descriptor.related if (type(rel_obj_descriptor) == ReverseOneToOneDescriptor) else \
+        rel_obj_descriptor.rel
 
       rel_field = rel_obj.field
       rel_obj_attr = rel_field.get_local_related_value
