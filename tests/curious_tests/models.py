@@ -35,6 +35,7 @@ class UserOneToOne(models.Model):
   user = models.OneToOneField(UserTest)
   extra = models.CharField(max_length=50)
 
+
 class Author(models.Model):
   name = models.CharField(max_length=50)
   age = models.IntegerField(null=True)
