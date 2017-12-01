@@ -30,11 +30,12 @@ class TestBatchFetch(TestCase):
     r = self.client.post('/curious/models/Entry/', data=json.dumps(data), content_type='application/json')
     self.assertEquals(r.status_code, 200)
     results = json.loads(r.content)['result']
-    self.assertEquals(results['fields'], ["id", "blog_id", "headline", "response_to_id"])
+    self.assertEquals(results['fields'], ["id", "blog_id", "headline", "response_to_id", "related_blog_id"])
     self.assertItemsEqual(results['urls'], [None for e in self.entries])
     self.assertItemsEqual(results['objects'],
                           [[e.id,
                             [self.blog.__class__.__name__, self.blog.pk, self.blog.name, None],
                             e.headline,
+                            None,
                             None]
                            for e in self.entries])
