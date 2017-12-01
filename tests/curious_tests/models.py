@@ -47,6 +47,7 @@ class Entry(models.Model):
   headline = models.CharField(max_length=255)
   authors = models.ManyToManyField(Author)
   response_to = models.ForeignKey('self', null=True, related_name='responses')
+  related_blog_id = models.PositiveIntegerField(null=True)
 
   def __unicode__(self):
     return self.headline
