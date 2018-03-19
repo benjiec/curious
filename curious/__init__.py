@@ -34,7 +34,11 @@ class ModelManager(object):
       rel = getattr(self.model_class, f)
     except:
       rel = None
-    if rel and _valid_django_rel(getattr(self.model_class, f)) and not f in self.disallowed_relationships:
+    if (
+      rel
+      and _valid_django_rel(getattr(self.model_class, f))
+      and f not in self.disallowed_relationships
+    ):
       return True
     return f in self.allowed_relationships
 
@@ -68,10 +72,14 @@ class ModelRegistry(object):
       self.__short_names[manager.short_name].append(manager)
 
   def register(self, model, short_name=None):
-    if type(model) == types.ModuleType:
+    if isinstance(model, types.ModuleType):
       for name in dir(model):
         cls = getattr(model, name)
-        if inspect.isclass(cls) and issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
+        if (
+          inspect.isclass(cls)
+          and issubclass(cls, django.db.models.Model)
+          and not cls._meta.abstract
+        ):
           self.__add_model_by_class(cls)
     else:
       if not hasattr(model, '_meta') or model._meta.abstract is False:
@@ -106,8 +114,12 @@ class ModelRegistry(object):
     if len(managers) == 0:
       return ModelManager.model_name(cls)
     manager = managers[0]
-    if manager.short_name in self.__short_names and len(self.__short_names[manager.short_name]) == 1:
+    if (
+      manager.short_name in self.__short_names
+      and len(self.__short_names[manager.short_name]) == 1
+    ):
       return manager.short_name
     return manager.model_name
+
 
 model_registry = ModelRegistry()
