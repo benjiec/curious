@@ -15,7 +15,7 @@ import time
 
 
 CACHE_VERSION = 5
-CACHE_TIMEOUT = 60*60
+CACHE_TIMEOUT = 60 * 60
 try:
   cache = caches['curious']
 except InvalidCacheBackendError:
@@ -191,7 +191,7 @@ class ModelView(JSONView):
       cls = model_registry.get_manager(model_name).model_class
     except:
       return self._error(404, "Unknown model '%s'" % model_name)
- 
+
     ignore_excludes = get_param_value(data, 'x', False)
     r = ModelView.get_objects_as_json(cls, data['ids'], ignore_excludes, True, True, app)
     return self._return(200, r)
@@ -240,6 +240,7 @@ class ObjectView(JSONView):
 
 
 class QueryView(JSONView):
+
   # if query takes longer than this number of seconds, cache it
   QUERY_TIME_CACHING_THRESHOLD = 10
 
@@ -254,7 +255,7 @@ class QueryView(JSONView):
     if cache_v is None:
       t = time.time()
       cache_v = self.run_query(query)
-      t = time.time()-t
+      t = time.time() - t
 
       if app is not None:
         if t > QueryView.QUERY_TIME_CACHING_THRESHOLD or force_cache:
@@ -284,11 +285,12 @@ class QueryView(JSONView):
       else:
         model_name = None
 
-      d = {'model': model_name,
-           'join_index': join_index,
-           'objects': [(obj.pk, src) if obj is not None else (None, src) for obj, src in obj_src],
-           'tree': tree
-          }
+      d = {
+        'model': model_name,
+        'join_index': join_index,
+        'objects': [(obj.pk, src) if obj is not None else (None, src) for obj, src in obj_src],
+        'tree': tree,
+      }
       results.append(d)
 
     if last_model is not None:
@@ -329,7 +331,7 @@ class QueryView(JSONView):
       traceback.print_exc()
       return self._error(400, str(e))
 
-    t = datetime.now()-results['computed_on']
+    t = datetime.now() - results['computed_on']
     if t.seconds > 300:
       results['computed_since'] = str(naturaltime(results['computed_on']))
     results['computed_on'] = str(results['computed_on'])
@@ -340,7 +342,7 @@ class QueryView(JSONView):
       for result in results['results']:
         if result['model']:
           model = model_registry.get_manager(result['model']).model_class
-          ids = [t[0] for t in result['objects']]
+          ids = [obj[0] for obj in result['objects']]
           objs = ModelView.get_objects_as_json(model, ids, ignore_excludes, follow_fk, force, app)
           objects.append(objs)
         else:
