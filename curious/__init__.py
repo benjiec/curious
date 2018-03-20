@@ -22,11 +22,20 @@ class ModelManager(object):
 
   def __init__(self, model_class, short_name=None):
     self.model_class = model_class
+
     self.model_name = ModelManager.model_name(model_class)
     self.short_name = model_class.__name__ if short_name is None else short_name
+
+    # Relationships/foreign keys have explicit white/blacklists
     self.allowed_relationships = []
     self.disallowed_relationships = []
+
+    # All model fields are included by default, except these
     self.field_excludes = []
+
+    # Fields returned by Curious represented by @properties of the model
+    self.property_fields = []
+
     self.url_function = None
 
   def is_rel_allowed(self, f):
@@ -82,7 +91,7 @@ class ModelRegistry(object):
         ):
           self.__add_model_by_class(cls)
     else:
-      if not hasattr(model, '_meta') or model._meta.abstract is False:
+      if not hasattr(model, '_meta') or not model._meta.abstract:
         self.__add_model_by_class(model, short_name)
 
   def unregister(self, model_name):
