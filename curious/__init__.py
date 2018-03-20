@@ -85,6 +85,16 @@ class ModelRegistry(object):
       if not hasattr(model, '_meta') or model._meta.abstract is False:
         self.__add_model_by_class(model, short_name)
 
+  def unregister(self, model_name):
+
+    # will error out if model_name is ambiguious
+    full_model_name = self.__translate_name(model_name)
+
+    del self.__managers[full_model_name]
+
+    # if we get here, we can be sure there's exactly one entry in short_names
+    del self.__short_names[model_name]
+
   def __translate_name(self, name):
     if name in self.__managers:
       model_name = name
