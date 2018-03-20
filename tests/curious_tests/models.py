@@ -27,8 +27,19 @@ class Blog(models.Model):
     return r
 
 
-class Person(models.Model):
+class LivingThing(models.Model):
+  class Meta:
+    abstract = True
+
+  alive = models.BooleanField(default=True)
+
+
+class Person(LivingThing):
   gender = models.CharField(max_length=50)
+
+  @property
+  def example_property_field(self):
+    return 'The owls are not what they seem'
 
 
 class Author(models.Model):

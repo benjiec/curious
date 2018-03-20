@@ -72,20 +72,27 @@ class ModelView(JSONView):
 
     obj = objects[0]
     model_name = model_registry.get_name(obj.__class__)
+    model_manager = model_registry.get_manager(model_name)
     if ignore_excludes is True:
       excludes = []
     else:
-      excludes = model_registry.get_manager(model_name).field_excludes
+      excludes = model_manager.field_excludes
 
     if hasattr(obj, '_meta'):
       for f in obj._meta.fields:
         if f.column not in excludes:
           fields.append(f.column)
           fk.append(f.name if type(f) == ForeignKey else None)
+
       if 'id' not in fields:
         fields.append('pk')
         fk.append(None)
         add_pk = True
+
+      for f in model_manager.property_fields:
+        fields.append(f)
+        fk.append(None)
+
     else:
       is_model = False
       for f in obj.fields():
