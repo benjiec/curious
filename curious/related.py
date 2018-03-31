@@ -6,6 +6,7 @@ def remote_fk(from_model_fk_field, to_model, to_model_field=None):
   @staticmethod
   def rel_f(instances, filter_f):
     instances = deferred_to_real(instances)
+
     c = {}
     c['%s__in' % to_model_field] = [getattr(instance, from_model_fk_field) for instance in instances]
     q = to_model.objects.filter(**c)

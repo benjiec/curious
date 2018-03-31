@@ -190,10 +190,14 @@ class ASTBuilder(NodeVisitor):
     return val[0]
 
   def visit_array_value(self, node, args):
-    (br1, _1, value, more_values, _2, br2) = args
-    if type(more_values) != list:
-      more_values = []
-    return [value]+more_values
+    (br1, _1, value_list, _2, br2) = args
+    if type(value_list[0]) == list:
+      [value, more_values] = value_list[0]
+      if type(more_values) != list:
+        more_values = []
+      return [value]+more_values
+    else:
+      return []
 
   def visit_another_val(self, node, args):
     (_1, comma, _2, value) = args

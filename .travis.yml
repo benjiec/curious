@@ -1,16 +1,22 @@
 language: python
 python:
-    - 2.7
+- 2.7
+env:
+- TOXENV=py27-django111
 before_install:
-    - date -u
-    - uname -a
-    - lsb_release -a
-    - sudo apt-get -qq update
-    - sudo apt-get -y install npm python-dev 
-    - npm install -g bower
+- npm install --global bower
 install:
-    - python setup.py install
+- pip install --requirement requirements.txt
+- pip install --editable .
 script:
-    - python tests/manage.py test
-after_success:
-    - coveralls
+- make test-tox
+deploy:
+  provider: pypi
+  user: ginkgodev
+  distributions: sdist bdist_wheel
+  skip_upload_docs: true
+  password:
+    secure: xFadI014+bj2fr5M+xf7+K7B84UP9mWrl450DNHTMTZH0mEwHFlv1Uc0gPWTk2SYL+IKygp+tCz+cqcBb44UYcs3mHGPU4w5hhGSJ5izqZ7lBgSe6RlHwEz4JuZOo1J7xBeB0bYKnVM1rebXbCXRFfi2FmRKiHKaP8tT7pcC7OQ9uKTgqsaWyY9aUibxWHrGWetvuaIUrXCbM3XP0B6wc9jDAOrh0+LJfckMgr0IFJihwQvId5T25jLmOjkPPqbneIjhDdgOR8ArLSFL4e29/941gXfvybUA+Imze+0ZhHVfJNIEGLEn+X4zzN+tuNGesbGwMkuCazo/gjHfbDLIF+qVhr9JaJ34EeTvPRz1yhqpwiBlvN11Nt/h8i71DjlZ2xXlNVhB1VkEbrxjcevBQTJSpWO1vwiQDjOlkAiNn6/a13mQU1fR2cpA+YHMlgwO+tFNJmEEw5GoIlB7FOR9cfX0sHTF7pMXzdCg2g9SPEukHS8kAv2LjaljRTan5VwX9YO6yiPeh3NJwGuglAGFG+GSKFcwXfFxndY9PAy/e2EfRZgcPlJl0CrWu2YEW7txN4Ah3ra6e4FiRn5/e4CXjTVFn9ACCVOuWirLIBvJ1KtHsLtkFMQC8rSrdY0WFMePCPhigS9HH/7zf3IqlgF0HhXiJ7WQK0wG0K/vyzi/eGs=
+  on:
+    tags: true
+    repo: ginkgobioworks/curious

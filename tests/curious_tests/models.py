@@ -27,10 +27,27 @@ class Blog(models.Model):
     return r
 
 
+class LivingThing(models.Model):
+  class Meta:
+    abstract = True
+
+  alive = models.BooleanField(default=True)
+
+
+class Person(LivingThing):
+  gender = models.CharField(max_length=50)
+
+  @property
+  def example_property_field(self):
+    return 'The owls are not what they seem'
+
+
 class Author(models.Model):
   name = models.CharField(max_length=50)
   age = models.IntegerField(null=True)
   friends = models.ManyToManyField('self')
+
+  person = models.OneToOneField(Person, null=True)
 
   def __unicode__(self):
     return self.name
@@ -41,6 +58,7 @@ class Entry(models.Model):
   headline = models.CharField(max_length=255)
   authors = models.ManyToManyField(Author)
   response_to = models.ForeignKey('self', null=True, related_name='responses')
+  related_blog_id = models.PositiveIntegerField(null=True)
 
   def __unicode__(self):
     return self.headline

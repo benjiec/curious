@@ -5,10 +5,10 @@ from .graph import _valid_django_rel
 
 
 def deferred_to_real(objs):
-  deferred_model = [type(obj) for obj in objs if type(obj)._deferred]
+  deferred_model = [type(obj) for obj in objs if obj.get_deferred_fields()]
   if len(deferred_model) == 0:
     return []
-  model = deferred_model[0].__base__
+  model = deferred_model[0]
   return model.objects.filter(pk__in=[obj.pk for obj in objs])
 
 
@@ -22,11 +22,20 @@ class ModelManager(object):
 
   def __init__(self, model_class, short_name=None):
     self.model_class = model_class
+
     self.model_name = ModelManager.model_name(model_class)
     self.short_name = model_class.__name__ if short_name is None else short_name
+
+    # Relationships/foreign keys have explicit white/blacklists
     self.allowed_relationships = []
     self.disallowed_relationships = []
+
+    # All model fields are included by default, except these
     self.field_excludes = []
+
+    # Fields returned by Curious represented by @properties of the model
+    self.property_fields = []
+
     self.url_function = None
 
   def is_rel_allowed(self, f):
@@ -34,7 +43,11 @@ class ModelManager(object):
       rel = getattr(self.model_class, f)
     except:
       rel = None
-    if rel and _valid_django_rel(getattr(self.model_class, f)) and not f in self.disallowed_relationships:
+    if (
+      rel
+      and _valid_django_rel(getattr(self.model_class, f))
+      and f not in self.disallowed_relationships
+    ):
       return True
     return f in self.allowed_relationships
 
@@ -68,14 +81,28 @@ class ModelRegistry(object):
       self.__short_names[manager.short_name].append(manager)
 
   def register(self, model, short_name=None):
-    if type(model) == types.ModuleType:
+    if isinstance(model, types.ModuleType):
       for name in dir(model):
         cls = getattr(model, name)
-        if inspect.isclass(cls) and issubclass(cls, django.db.models.Model) and cls._meta.abstract is False:
+        if (
+          inspect.isclass(cls)
+          and issubclass(cls, django.db.models.Model)
+          and not cls._meta.abstract
+        ):
           self.__add_model_by_class(cls)
     else:
-      if not hasattr(model, '_meta') or model._meta.abstract is False:
+      if not hasattr(model, '_meta') or not model._meta.abstract:
         self.__add_model_by_class(model, short_name)
+
+  def unregister(self, model_name):
+
+    # will error out if model_name is ambiguious
+    full_model_name = self.__translate_name(model_name)
+
+    del self.__managers[full_model_name]
+
+    # if we get here, we can be sure there's exactly one entry in short_names
+    del self.__short_names[model_name]
 
   def __translate_name(self, name):
     if name in self.__managers:
@@ -106,8 +133,12 @@ class ModelRegistry(object):
     if len(managers) == 0:
       return ModelManager.model_name(cls)
     manager = managers[0]
-    if manager.short_name in self.__short_names and len(self.__short_names[manager.short_name]) == 1:
+    if (
+      manager.short_name in self.__short_names
+      and len(self.__short_names[manager.short_name]) == 1
+    ):
       return manager.short_name
     return manager.model_name
+
 
 model_registry = ModelRegistry()

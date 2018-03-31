@@ -1,7 +1,7 @@
 from django.test import TestCase
 from curious import model_registry
 from curious.query import Query
-from curious_tests.models import Blog, Entry, Author
+from curious_tests.models import Blog, Entry, Author, Person
 from curious_tests import assertQueryResultsEqual
 import curious_tests.models
 
@@ -51,6 +51,24 @@ class TestSimpleQueries(TestCase):
     assertQueryResultsEqual(self, result[0][0][0], [(self.entries[0], None)])
     self.assertEquals(result[1], Entry)
 
+  def test_query_with_empty_array_filter(self):
+    qs = 'Entry(id__in=[])'
+    query = Query(qs)
+    result = query()
+    self.assertFalse(result[0][0][0])
+
+  def test_query_with_spaces_only_array_filter(self):
+    qs = 'Entry(id__in=[  ])'
+    query = Query(qs)
+    result = query()
+    self.assertFalse(result[0][0][0])
+
+  def test_query_exlcuding_empty_array_filter(self):
+    qs = 'Entry.exclude(id__in=[])'
+    query = Query(qs)
+    result = query()
+    self.assertEquals(3, len(result[0][0][0]))
+
   def test_query_traversing_to_fk_object(self):
     qs = 'Entry(%s) Entry.blog' % self.entries[0].pk
     query = Query(qs)
@@ -58,7 +76,27 @@ class TestSimpleQueries(TestCase):
     self.assertEquals(result[0][0][1], -1)
     assertQueryResultsEqual(self, result[0][0][0], [(self.blogs[0], None)])
     self.assertEquals(result[1], Blog)
-  
+
+  def test_query_traversing_to_one_to_one_object(self):
+    person = Person(gender='unknown')
+    person.save()
+
+    author = Author(name='Al', age=99, person=person)
+    author.save()
+
+    qs = 'Author(name="Al") Author.person'
+    query = Query(qs)
+    result = query()
+    assertQueryResultsEqual(self, result[0][0][0], [(person, None)])
+    self.assertEquals(result[1], Person)
+
+    # go back
+    qs = 'Person(gender="unknown") Person.author'
+    query = Query(qs)
+    result = query()
+    assertQueryResultsEqual(self, result[0][0][0], [(author, None)])
+    self.assertEquals(result[1], Author)
+
   def test_query_traversing_from_fk_objects(self):
     qs = 'Blog(%s) Blog.entry_set' % self.blogs[0].pk
     query = Query(qs)
