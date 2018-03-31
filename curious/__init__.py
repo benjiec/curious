@@ -113,8 +113,8 @@ class ModelManager(object):
     return None
 
   def getattr(self, method):
-    if method.endswith("__count"):
-      method = method[:-7]
+    if method.startswith("count_"):
+      method = method[6:]
       f = self.getattr(method)
       return CountObject.count_wrapper(f)
 
